@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="90" fill="#42b983" />
+  <circle cx="100" cy="100" r="80" fill="#2c3e50" />
+  
+  <!-- Crypto Symbol -->
+  <path d="M100 40 L130 90 L100 140 L70 90 Z" fill="#42b983" stroke="#fff" stroke-width="2" />
+  
+  <!-- Connecting Lines -->
+  <line x1="100" y1="40" x2="100" y2="140" stroke="#fff" stroke-width="2" />
+  <line x1="70" y1="90" x2="130" y2="90" stroke="#fff" stroke-width="2" />
+  
+  <!-- Dots -->
+  <circle cx="100" cy="40" r="5" fill="#fff" />
+  <circle cx="130" cy="90" r="5" fill="#fff" />
+  <circle cx="100" cy="140" r="5" fill="#fff" />
+  <circle cx="70" cy="90" r="5" fill="#fff" />
+  
+  <!-- Small Decorative Circles -->
+  <circle cx="115" cy="65" r="3" fill="#fff" />
+  <circle cx="85" cy="65" r="3" fill="#fff" />
+  <circle cx="115" cy="115" r="3" fill="#fff" />
+  <circle cx="85" cy="115" r="3" fill="#fff" />
+</svg> 
