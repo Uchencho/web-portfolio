@@ -4,12 +4,12 @@
     <p class="subtitle">A showcase of my blockchain and web development work</p>
 
     <div class="projects-grid">
-      <!-- Crypto Payout Consumer Project -->
-      <router-link to="/project/crypto-payout" class="card-link">
+      <!-- Zing Project -->
+      <router-link to="/project/zing" class="card-link">
         <div class="project-card featured">
           <div class="project-header">
             <div class="project-badge">New</div>
-            <h2>Crypto Payout Consumer</h2>
+            <h2>Zing</h2>
           </div>
           <p class="project-description">
             A modern solution for cryptocurrency transactions, allowing users to easily send payments

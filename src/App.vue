@@ -36,7 +36,7 @@
     </footer>
 
     <!-- Payout Modal -->
-    <PayoutModal :show="showPayoutModal" @close="showPayoutModal = false" />
+    <PayoutModal :show="showPayoutModal" @close="showPayoutModal = false" :network="currentNetwork" />
   </div>
 </template>
 
@@ -50,12 +50,13 @@ export default {
   data () {
     return {
       isDarkMode: false,
-      showPayoutModal: false
+      showPayoutModal: false,
+      currentNetwork: 'testnet'
     }
   },
   computed: {
     isProjectDetailRoute () {
-      return this.$route.path.includes('/project/crypto-payout')
+      return this.$route.path.includes('/project/zing')
     }
   },
   provide () {
