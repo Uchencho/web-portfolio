@@ -5,6 +5,10 @@
         <h2>Create Payout</h2>
         <button class="close-button" @click="closeModal">&times;</button>
       </div>
+      <div class="network-indicator" :class="{ 'mainnet': network === 'mainnet' }">
+        <span class="network-dot"></span>
+        <span class="network-label">{{ network === 'mainnet' ? 'MAINNET' : 'TESTNET' }}</span>
+      </div>
       <div class="modal-body">
         <form @submit.prevent="validateAndSubmit">
           <div class="form-group">
@@ -103,6 +107,13 @@ export default {
     show: {
       type: Boolean,
       default: false
+    },
+    network: {
+      type: String,
+      default: 'testnet',
+      validator: (value) => {
+        return ['testnet', 'mainnet'].includes(value)
+      }
     }
   },
   data () {
@@ -586,5 +597,76 @@ select {
 
 :deep(.dark-mode) .send-button:disabled {
   background-color: #2a7d63;
+}
+
+.network-indicator {
+  padding: 6px 15px;
+  background-color: #fff8e1;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f59f00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #eee;
+}
+
+.network-indicator.mainnet {
+  background-color: #fff5f5;
+  color: #e03131;
+}
+
+.network-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f59f00;
+  box-shadow: 0 0 5px rgba(245, 159, 0, 0.6);
+  animation: pulse-dot 2s infinite;
+}
+
+.network-indicator.mainnet .network-dot {
+  background-color: #e03131;
+  box-shadow: 0 0 5px rgba(224, 49, 49, 0.6);
+  animation: pulse-dot-red 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 159, 0, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(245, 159, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 159, 0, 0);
+  }
+}
+
+@keyframes pulse-dot-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(224, 49, 49, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(224, 49, 49, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(224, 49, 49, 0);
+  }
+}
+
+:deep(.dark-mode) .network-indicator {
+  background-color: #2c2410;
+  color: #f59f00;
+  border-bottom-color: #333;
+}
+
+:deep(.dark-mode) .network-indicator.mainnet {
+  background-color: #2b1a1a;
+  color: #ff6b6b;
 }
 </style>

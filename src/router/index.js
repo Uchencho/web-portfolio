@@ -15,7 +15,7 @@ const routes = [
     component: ProjectsView
   },
   {
-    path: '/project/crypto-payout',
+    path: '/project/zing',
     name: 'project-detail',
     component: ProjectDetailView
   },
