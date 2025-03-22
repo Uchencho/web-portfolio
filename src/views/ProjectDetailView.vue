@@ -57,6 +57,54 @@
           <p>Welcome to the Zing dashboard on {{ isMainnet ? 'Mainnet' : 'Testnet' }}.
             {{ isMainnet ? 'This is the production environment where real transactions occur.' : 'This is a test environment for development purposes only.' }}
           </p>
+
+          <div class="chain-selector">
+            <div class="custom-dropdown" :class="{ 'dropdown-open': chainDropdownOpen }" @click="toggleChainDropdown" ref="chainDropdown">
+              <div class="selected-option">
+                {{ selectedChain === 'sepolia' ? 'Sepolia' : 'Ethereum' }}
+              </div>
+              <div class="dropdown-options" :class="{ 'open': chainDropdownOpen }">
+                <div class="dropdown-option"
+                     :class="{ 'active': selectedChain === 'sepolia' }"
+                     @click.stop="selectChain('sepolia')"
+                     v-if="network === 'testnet'">
+                  <span class="dot testnet-dot"></span>Sepolia
+                </div>
+                <div class="dropdown-option"
+                     :class="{ 'active': selectedChain === 'eth' }"
+                     @click.stop="selectChain('eth')"
+                     v-if="network === 'mainnet'">
+                  <span class="dot mainnet-dot"></span>Ethereum
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="balance-cards">
+            <div class="balance-card" :class="{ 'loading': isLoading }">
+              <div class="balance-icon usdc">
+                <span>$</span>
+              </div>
+              <div class="balance-amount">{{ balances.usdc }} USDC</div>
+            </div>
+
+            <div class="balance-card" :class="{ 'loading': isLoading }">
+              <div class="balance-icon usdt">
+                <span>$</span>
+              </div>
+              <div class="balance-amount">{{ balances.usdt }} USDT</div>
+            </div>
+
+            <div class="balance-card" :class="{ 'loading': isLoading }">
+              <div class="balance-icon eth">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                  <path d="M12 1.75l-6.25 10.5L12 16l6.25-3.75L12 1.75zM12 22.25l-6.25-8.5L12 17.5l6.25-3.75L12 22.25z" fill="currentColor"/>
+                </svg>
+              </div>
+              <div class="balance-amount">{{ balances.eth }} {{ selectedChain === 'sepolia' ? 'SEP' : 'ETH' }}</div>
+            </div>
+          </div>
+
           <div class="action-buttons">
             <button class="action-button primary" @click="openPayoutWithNetwork">
               Create {{ isMainnet ? 'Mainnet' : 'Testnet' }} Payout
@@ -70,13 +118,23 @@
 </template>
 
 <script>
+const API_BASE_URL = 'https://em28dw3dg6.execute-api.us-east-1.amazonaws.com/dev'
+
 export default {
   name: 'ProjectDetailView',
   inject: ['openPayoutModal'],
   data () {
     return {
       network: 'testnet',
-      dropdownOpen: false
+      dropdownOpen: false,
+      chainDropdownOpen: false,
+      selectedChain: 'sepolia', // Default selection
+      balances: {
+        usdc: '0.00',
+        usdt: '0.00',
+        eth: '0.00'
+      },
+      isLoading: false
     }
   },
   computed: {
@@ -87,23 +145,75 @@ export default {
   methods: {
     toggleDropdown () {
       this.dropdownOpen = !this.dropdownOpen
+      if (this.dropdownOpen) {
+        this.chainDropdownOpen = false
+      }
+    },
+    toggleChainDropdown () {
+      this.chainDropdownOpen = !this.chainDropdownOpen
+      if (this.chainDropdownOpen) {
+        this.dropdownOpen = false
+      }
     },
     selectNetwork (value) {
       this.network = value
       this.dropdownOpen = false
+      // Update selected chain based on network
+      this.selectedChain = value === 'testnet' ? 'sepolia' : 'eth'
+      this.fetchBalances()
+    },
+    selectChain (value) {
+      this.selectedChain = value
+      this.chainDropdownOpen = false
+      this.fetchBalances()
     },
     handleClickOutside (event) {
       if (this.$refs.dropdown && !this.$refs.dropdown.contains(event.target)) {
         this.dropdownOpen = false
       }
+      if (this.$refs.chainDropdown && !this.$refs.chainDropdown.contains(event.target)) {
+        this.chainDropdownOpen = false
+      }
     },
     openPayoutWithNetwork () {
       this.$root.currentNetwork = this.network
       this.openPayoutModal()
+    },
+    async fetchBalances () {
+      this.isLoading = true
+      try {
+        // For mainnet, just set zero balances since contract is not deployed yet
+        if (this.network === 'mainnet') {
+          this.balances.usdc = '0.00'
+          this.balances.usdt = '0.00'
+          this.balances.eth = '0.00'
+          return
+        }
+
+        // For testnet, fetch actual balances from API
+        // Fetch token (USDC) balance
+        const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${this.selectedChain}`)
+        if (usdcResponse.ok) {
+          const usdcData = await usdcResponse.json()
+          this.balances.usdc = usdcData.value || '0.00'
+        }
+
+        // Fetch native token (ETH/SEP) balance
+        const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${this.selectedChain}`)
+        if (ethResponse.ok) {
+          const ethData = await ethResponse.json()
+          this.balances.eth = ethData.value || '0.00'
+        }
+      } catch (error) {
+        console.error('Error fetching balances:', error)
+      } finally {
+        this.isLoading = false
+      }
     }
   },
   mounted () {
     document.addEventListener('click', this.handleClickOutside)
+    this.fetchBalances()
   },
   beforeUnmount () {
     document.removeEventListener('click', this.handleClickOutside)
@@ -240,9 +350,9 @@ h1 {
 }
 
 .project-logo {
-  width: 150px;
-  height: 150px;
-  margin-bottom: 30px;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
   animation: pulse 3s infinite alternate;
 }
 
@@ -362,8 +472,8 @@ h1 {
   }
 
   .project-logo {
-    width: 120px;
-    height: 120px;
+    width: 60px;
+    height: 60px;
   }
 
   .action-buttons {
@@ -602,5 +712,165 @@ h1 {
     transform: scale(1.05);
     filter: drop-shadow(0 0 10px rgba(79, 209, 165, 0.7));
   }
+}
+
+/* Balance Card Styles */
+.balance-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 700px;
+  margin: 15px 0 30px;
+}
+
+.balance-card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 12px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid #eaeaea;
+  position: relative;
+}
+
+.balance-card.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.dark-mode) .balance-card.loading::after {
+  background-color: rgba(30, 30, 30, 0.7);
+}
+
+.balance-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+}
+
+.balance-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.balance-icon.usdc {
+  background-color: #2775ca;
+}
+
+.balance-icon.usdt {
+  background-color: #26a17b;
+}
+
+.balance-icon.eth {
+  background-color: #627eea;
+}
+
+.balance-amount {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #aaa;
+  letter-spacing: 0.5px;
+}
+
+/* Chain Selector Styles */
+.chain-selector {
+  display: flex;
+  align-items: center;
+  margin: 15px 0 20px;
+  width: 100%;
+  max-width: 300px;
+  justify-content: center;
+}
+
+.chain-selector .custom-dropdown {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 25px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.chain-selector .custom-dropdown:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Styles for Chain Selector */
+:deep(.dark-mode) .chain-selector label {
+  color: #f0f0f0;
+}
+
+:deep(.dark-mode) .chain-selector .custom-dropdown {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+}
+
+:deep(.dark-mode) .chain-selector .custom-dropdown:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Responsive Design for Balance Cards */
+@media (max-width: 768px) {
+  .balance-cards {
+    grid-template-columns: 1fr;
+    max-width: 280px;
+  }
+
+  .project-logo {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* Dark Mode Styles for Balance Cards and Chain Selector */
+:deep(.dark-mode) .balance-card {
+  background-color: #1e1e1e;
+  border: none;
+}
+
+:deep(.dark-mode) .balance-amount {
+  color: #ffffff;
+}
+
+:deep(.dark-mode) .chain-selector label {
+  color: #f0f0f0;
+}
+
+:deep(.dark-mode) .select-wrapper select {
+  background-color: #333;
+  border-color: #444;
+  color: #f0f0f0;
+}
+
+:deep(.dark-mode) .select-wrapper select:focus {
+  border-color: #4fd1a5;
+  box-shadow: 0 0 0 3px rgba(79, 209, 165, 0.2);
+}
+
+:deep(.dark-mode) .select-arrow {
+  border-top-color: #aaa;
 }
 </style>
