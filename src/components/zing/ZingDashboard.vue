@@ -48,7 +48,7 @@
             <zing-balance-card
               type="ETH"
               :amount="balances.eth"
-              :symbol="selectedChain === 'sepolia' ? 'SEP' : 'ETH'"
+              :symbol="getNativeTokenSymbol()"
               :is-loading="isLoading"
             />
           </div>
@@ -168,6 +168,23 @@ export default {
         console.error('Error loading balances:', error)
       } finally {
         this.isLoading = false
+      }
+    },
+    openTransactionsModal () {
+      this.showTransactionsModal = true
+    },
+    getNativeTokenSymbol () {
+      switch (this.selectedChain) {
+        case 'sepolia':
+          return 'SEP'
+        case 'eth':
+          return 'ETH'
+        case 'bnb':
+          return 'BNB'
+        case 'tbnb':
+          return 'tBNB'
+        default:
+          return 'ETH'
       }
     }
   },

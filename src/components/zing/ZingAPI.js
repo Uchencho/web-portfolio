@@ -23,8 +23,11 @@ export async function fetchBalances (network, chain) {
   }
 
   try {
+    // For BNB chains, use 'bnbTestnet' as the chain parameter
+    const chainParam = chain === 'bnb' || chain === 'tbnb' ? 'bnbTestnet' : chain
+
     // Fetch token (USDC) balance
-    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chain}`, {
+    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -38,8 +41,9 @@ export async function fetchBalances (network, chain) {
       balances.usdc = usdcData.value || '0.00'
     }
 
-    // Fetch native token (ETH/SEP) balance
-    const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chain}`, {
+    // Fetch native token (ETH/SEP/BNB) balance
+    // We already set the correct chain parameter above
+    const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chainParam}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -67,16 +71,30 @@ export async function fetchBalances (network, chain) {
 /**
  * Fetches transaction data from the API
  * @param {string} network - The network (mainnet/testnet)
+ * @param {string} [chain] - Optional chain parameter to filter transactions by chain
  * @returns {Array} List of transactions
  */
-export async function fetchTransactions (network) {
+export async function fetchTransactions (network, chain) {
   // For mainnet, return empty array since contract is not deployed yet
   if (network === 'mainnet') {
     return []
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/zing/transactions`, {
+    let url = `${API_BASE_URL}/zing/transactions`
+
+    // If chain is provided, add it as a query parameter
+    // and handle BNB chains specially
+    if (chain) {
+      // Normalize chain value
+      let chainValue = chain.toLowerCase()
+      if (chainValue === 'bnb' || chainValue === 'tbnb') {
+        chainValue = 'bnbTestnet'
+      }
+      url += `?chain=${chainValue}`
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -105,10 +123,11 @@ export async function fetchTransactions (network) {
  * Fetches a specific transaction by its hash
  * @param {string} network - The network (mainnet/testnet)
  * @param {string} transactionHash - The hash of the transaction to fetch
+ * @param {string} [chain] - Optional chain parameter to specify which chain the transaction is on
  * @returns {Promise<Object>} Transaction details
  * @throws {Error} If transaction cannot be fetched
  */
-export async function fetchTransactionDetails (network, transactionHash) {
+export async function fetchTransactionDetails (network, transactionHash, chain) {
   // For mainnet, reject with an appropriate error since it's not available
   if (network === 'mainnet') {
     const error = new Error('Mainnet transactions are not available yet')
@@ -117,7 +136,20 @@ export async function fetchTransactionDetails (network, transactionHash) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/zing/transactions/${transactionHash}`, {
+    let url = `${API_BASE_URL}/zing/transactions/${transactionHash}`
+
+    // If chain is provided, add it as a query parameter
+    // and handle BNB chains specially
+    if (chain) {
+      // Normalize chain value
+      let chainValue = chain.toLowerCase()
+      if (chainValue === 'bnb' || chainValue === 'tbnb') {
+        chainValue = 'bnbTestnet'
+      }
+      url += `?chain=${chainValue}`
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -169,10 +201,17 @@ export async function fetchTransactionDetails (network, transactionHash) {
  */
 export async function submitPayout (payoutData) {
   try {
-    // Create a new payload with lowercase chain value
+    // Create a new payload with lowercase chain value and adjust for BNB chains
+    let chainValue = payoutData.chain.toLowerCase() // Ensure chain is lowercase
+
+    // For BNB chains, use 'bnbTestnet' as the chain parameter
+    if (chainValue === 'bnb' || chainValue === 'tbnb') {
+      chainValue = 'bnbTestnet'
+    }
+
     const payload = {
       ...payoutData,
-      chain: payoutData.chain.toLowerCase() // Ensure chain is lowercase
+      chain: chainValue
     }
 
     const response = await fetch(`${API_BASE_URL}/zing/payout`, {

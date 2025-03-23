@@ -19,7 +19,9 @@
                 <option value="arb">Arbitrum (ARB)</option>
                 <option value="polygon">Polygon (MATIC)</option>
                 <option value="sepolia" v-if="network === 'testnet'">Sepolia (SEP)</option>
+                <option value="tbnb" v-if="network === 'testnet'">BNB Testnet (tBNB)</option>
                 <option value="eth" v-if="network === 'mainnet'">Ethereum (ETH)</option>
+                <option value="bnb" v-if="network === 'mainnet'">BNB Chain (BNB)</option>
               </select>
               <div class="select-arrow"></div>
             </div>
@@ -358,11 +360,12 @@ export default {
         .then(data => {
           console.log('Payout successful:', data)
 
-          const networkName = this.getNetworkDisplayName()
-
-          alert(`Payout of ${this.formData.amount} ${this.formData.tokenType.toUpperCase()} to ${this.formData.address} on ${networkName} initiated successfully!`)
+          // Close the modal
           this.resetForm()
           this.closeModal()
+
+          // Emit an event to show the transactions list view
+          this.$emit('show-transactions')
         })
         .catch(error => {
           console.error('Error submitting payout:', error)
@@ -402,6 +405,10 @@ export default {
           return 'Sepolia'
         case 'eth':
           return 'Ethereum'
+        case 'bnb':
+          return 'BNB Chain'
+        case 'tbnb':
+          return 'BNB Testnet'
         default:
           return this.formData.chain
       }
@@ -416,6 +423,10 @@ export default {
           return 'SEP'
         case 'eth':
           return 'ETH'
+        case 'bnb':
+          return 'BNB'
+        case 'tbnb':
+          return 'tBNB'
         default:
           return 'ETH'
       }

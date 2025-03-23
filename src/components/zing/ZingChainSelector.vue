@@ -2,7 +2,7 @@
   <div class="chain-selector">
     <div class="custom-dropdown" :class="{ 'dropdown-open': dropdownOpen }" @click="toggleDropdown" ref="dropdown">
       <div class="selected-option">
-        {{ selectedChain === 'sepolia' ? 'Sepolia' : 'Ethereum' }}
+        {{ getSelectedChainDisplay() }}
       </div>
       <div class="dropdown-options" :class="{ 'open': dropdownOpen }">
         <div class="dropdown-option"
@@ -12,10 +12,22 @@
           <span class="dot testnet-dot"></span>Sepolia
         </div>
         <div class="dropdown-option"
+             :class="{ 'active': selectedChain === 'tbnb' }"
+             @click.stop="selectChain('tbnb')"
+             v-if="network === 'testnet'">
+          <span class="dot testnet-dot"></span>BNB Testnet
+        </div>
+        <div class="dropdown-option"
              :class="{ 'active': selectedChain === 'eth' }"
              @click.stop="selectChain('eth')"
              v-if="network === 'mainnet'">
           <span class="dot mainnet-dot"></span>Ethereum
+        </div>
+        <div class="dropdown-option"
+             :class="{ 'active': selectedChain === 'bnb' }"
+             @click.stop="selectChain('bnb')"
+             v-if="network === 'mainnet'">
+          <span class="dot mainnet-dot"></span>BNB Chain
         </div>
       </div>
     </div>
@@ -29,7 +41,7 @@ export default {
     value: {
       type: String,
       default: 'sepolia',
-      validator: value => ['sepolia', 'eth'].includes(value)
+      validator: value => ['sepolia', 'eth', 'bnb', 'tbnb'].includes(value)
     },
     network: {
       type: String,
@@ -55,6 +67,20 @@ export default {
     },
     closeDropdown () {
       this.dropdownOpen = false
+    },
+    getSelectedChainDisplay () {
+      switch (this.selectedChain) {
+        case 'sepolia':
+          return 'Sepolia'
+        case 'eth':
+          return 'Ethereum'
+        case 'bnb':
+          return 'BNB Chain'
+        case 'tbnb':
+          return 'BNB Testnet'
+        default:
+          return this.selectedChain
+      }
     }
   },
   watch: {
@@ -63,10 +89,14 @@ export default {
     },
     network (newNetwork) {
       // Update chain when network changes
-      if (newNetwork === 'testnet' && this.selectedChain !== 'sepolia') {
-        this.selectChain('sepolia')
-      } else if (newNetwork === 'mainnet' && this.selectedChain !== 'eth') {
-        this.selectChain('eth')
+      if (newNetwork === 'testnet') {
+        if (!['sepolia', 'tbnb'].includes(this.selectedChain)) {
+          this.selectChain('sepolia')
+        }
+      } else if (newNetwork === 'mainnet') {
+        if (!['eth', 'bnb'].includes(this.selectedChain)) {
+          this.selectChain('eth')
+        }
       }
     }
   }

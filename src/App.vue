@@ -36,7 +36,12 @@
     </footer>
 
     <!-- Payout Modal -->
-    <PayoutModal :show="showPayoutModal" @close="showPayoutModal = false" :network="currentNetwork" />
+    <PayoutModal
+      :show="showPayoutModal"
+      @close="showPayoutModal = false"
+      :network="currentNetwork"
+      @show-transactions="navigateToTransactions"
+    />
   </div>
 </template>
 
@@ -79,6 +84,29 @@ export default {
     },
     openPayoutModal () {
       this.showPayoutModal = true
+    },
+    navigateToTransactions () {
+      // If we're on the project detail page, show the transactions modal
+      if (this.isProjectDetailRoute) {
+        // Access the ZingDashboard component via refs if possible
+        // Otherwise find another way to trigger the transactions modal
+        if (this.$route.matched.length > 0 && this.$route.matched[0].instances.default) {
+          const dashboard = this.$route.matched[0].instances.default.$children.find(
+            child => child.$options.name === 'ZingDashboard'
+          )
+          if (dashboard) {
+            dashboard.openTransactionsModal()
+          }
+        }
+      } else {
+        // Navigate to project detail page first, then show transactions
+        this.$router.push('/project/zing')
+        // We need to wait for navigation to complete before showing the modal
+        this.$nextTick(() => {
+          // Set a flag that the ProjectDetailView can check to show transactions
+          this.$root.showTransactionsAfterNavigation = true
+        })
+      }
     }
   },
   mounted () {
