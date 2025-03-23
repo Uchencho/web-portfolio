@@ -1,0 +1,720 @@
+<template>
+  <div class="transactions-modal" v-show="show">
+    <div class="modal-backdrop" @click="$emit('close')"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ effectiveNetwork === 'mainnet' ? 'Mainnet' : 'Testnet' }} Transactions</h2>
+        <button class="close-button" @click="$emit('close')">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div v-if="isLoading && effectiveNetwork !== 'mainnet'" class="loading-indicator">
+          <div class="spinner"></div>
+          <p>Loading transactions...</p>
+        </div>
+
+        <div v-else-if="effectiveNetwork === 'mainnet' || showEmptyState" class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="empty-icon">
+            <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm0 4c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5 2.24-5 5-5zm0 0c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z" fill="currentColor"/>
+          </svg>
+          <p v-if="effectiveNetwork === 'mainnet'">No transactions available on Mainnet.</p>
+          <p v-else>No transactions found.</p>
+          <p v-if="effectiveNetwork === 'mainnet'" class="hint">
+            Mainnet contract has not been deployed yet. Please use Testnet for now.
+          </p>
+          <p v-else-if="transactions.length === 0" class="hint">
+            No transactions have been made yet.
+          </p>
+        </div>
+
+        <div v-else-if="!forceMainnetEmptyState && effectiveNetwork !== 'mainnet' && filteredTransactions.length > 0" class="transactions-table-container">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Transaction Hash</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Destination</th>
+                <th>Status</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="tx in filteredTransactions" :key="tx.transactionHash" @click="openTransactionDetails(tx)">
+                <td class="tx-id">
+                  <div class="tx-cell">
+                    <span>{{ truncateHash(tx.transactionHash) }}</span>
+                    <div class="copy-tooltip">
+                      <button class="copy-button" @click.stop="copyToClipboard(tx.transactionHash)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                          <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" fill="currentColor"/>
+                        </svg>
+                      </button>
+                      <span class="tooltip-text">Copy Hash</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="date-cell">{{ formatDate(tx.timestamp) }}</td>
+                <td>{{ formatAmount(tx.amount) }}</td>
+                <td class="address">{{ truncateAddress(tx.destinationAddress) }}</td>
+                <td>
+                  <span class="status-badge" :class="tx.status.toLowerCase()">
+                    {{ tx.status }}
+                  </span>
+                </td>
+                <td>{{ tx.email }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-button secondary" @click="$emit('close')">Close</button>
+        <button v-if="effectiveNetwork !== 'mainnet'" class="modal-button primary" @click="refreshTransactions">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Transaction Detail Modal -->
+    <zing-transaction-detail-modal
+      :show="showTransactionDetailModal"
+      :transaction-hash="selectedTransactionHash"
+      :network="effectiveNetwork"
+      @close="closeTransactionDetailModal"
+    />
+  </div>
+</template>
+
+<script>
+import { fetchTransactions } from './ZingAPI'
+import ZingTransactionDetailModal from './ZingTransactionDetailModal.vue'
+
+export default {
+  name: 'ZingTransactionsModal',
+  components: {
+    ZingTransactionDetailModal
+  },
+  props: {
+    show: {
+      type: Boolean,
+      default: false
+    },
+    network: {
+      type: String,
+      required: true,
+      validator: value => ['testnet', 'mainnet'].includes(value)
+    }
+  },
+  data () {
+    return {
+      transactions: [],
+      isLoading: false,
+      clipboardMessage: '',
+      forceMainnetEmptyState: false,
+      showTransactionDetailModal: false,
+      selectedTransactionHash: ''
+    }
+  },
+  computed: {
+    effectiveNetwork () {
+      // First, check if there's a matching network from the dashboard
+      if (this.$root && this.$root.currentNetwork === 'mainnet') {
+        return 'mainnet'
+      }
+
+      // Next, check for mainnet in the prop with case insensitivity
+      if (this.network === 'mainnet' ||
+          this.network === 'Mainnet' ||
+          (typeof this.network === 'string' && this.network.toLowerCase() === 'mainnet')) {
+        return 'mainnet'
+      }
+
+      // Finally, use the prop as is for non-mainnet
+      return this.network
+    },
+
+    showEmptyState () {
+      return this.effectiveNetwork === 'mainnet' || this.transactions.length === 0
+    },
+
+    filteredTransactions () {
+      if (this.effectiveNetwork === 'mainnet') {
+        return []
+      }
+      return this.transactions
+    }
+  },
+  created () {
+    // Initialization handled by computed properties
+  },
+  methods: {
+    async loadTransactions () {
+      // For mainnet, never load transactions
+      if (this.effectiveNetwork === 'mainnet') {
+        this.transactions = []
+        this.isLoading = false
+        return
+      }
+
+      this.transactions = []
+      this.isLoading = true
+      try {
+        const data = await fetchTransactions(this.effectiveNetwork)
+        this.transactions = data
+      } catch (error) {
+        console.error('Error loading transactions:', error)
+        this.transactions = []
+      } finally {
+        this.isLoading = false
+      }
+    },
+    refreshTransactions () {
+      // Check if we're on mainnet and prevent loading
+      if (this.effectiveNetwork === 'mainnet') {
+        this.transactions = []
+        this.isLoading = false
+        return
+      }
+
+      this.loadTransactions()
+    },
+    truncateHash (hash) {
+      if (!hash) return 'N/A'
+      if (hash.length <= 10) return hash
+      return hash.substring(0, 10) + '...' + hash.substring(hash.length - 8)
+    },
+    truncateAddress (address) {
+      if (!address) return 'N/A'
+      if (address.length <= 10) return address
+      return address.substring(0, 6) + '...' + address.substring(address.length - 4)
+    },
+    formatDate (dateString) {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    },
+    formatAmount (amount) {
+      if (!amount) return 'N/A'
+      return `${amount.value} ${amount.currency}`
+    },
+    copyToClipboard (text) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          this.clipboardMessage = 'Copied!'
+          setTimeout(() => {
+            this.clipboardMessage = ''
+          }, 2000)
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err)
+        })
+    },
+    openTransactionDetails (transaction) {
+      this.selectedTransactionHash = transaction.transactionHash
+      this.showTransactionDetailModal = true
+    },
+    closeTransactionDetailModal () {
+      this.showTransactionDetailModal = false
+      this.selectedTransactionHash = ''
+    }
+  },
+  watch: {
+    show (newVal) {
+      if (newVal) {
+        if (this.effectiveNetwork === 'mainnet') {
+          this.transactions = []
+          this.isLoading = false
+          return
+        }
+        this.loadTransactions()
+      }
+    },
+    network () {
+      if (this.show) {
+        if (this.effectiveNetwork === 'mainnet') {
+          this.transactions = []
+          this.isLoading = false
+          return
+        }
+        this.loadTransactions()
+      }
+    },
+    '$root.currentNetwork' () {
+      if (this.show) {
+        if (this.effectiveNetwork === 'mainnet') {
+          this.transactions = []
+          this.isLoading = false
+          return
+        }
+        this.loadTransactions()
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+.transactions-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  position: relative;
+  background-color: white;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+}
+
+.close-button {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  margin: -10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.modal-button.primary {
+  background-color: #42b983;
+  color: white;
+}
+
+.modal-button.primary:hover {
+  background-color: #3aa876;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(66, 185, 131, 0.3);
+}
+
+.modal-button.secondary {
+  background-color: transparent;
+  color: #42b983;
+  border: 1px solid #42b983;
+}
+
+.modal-button.secondary:hover {
+  background-color: rgba(66, 185, 131, 0.1);
+  transform: translateY(-2px);
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(66, 185, 131, 0.3);
+  border-radius: 50%;
+  border-top-color: #42b983;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 0;
+  color: #666;
+}
+
+.empty-icon {
+  width: 60px;
+  height: 60px;
+  color: #aaa;
+  margin-bottom: 20px;
+}
+
+.empty-state p {
+  margin: 5px 0;
+  font-size: 1.1rem;
+}
+
+.empty-state .hint {
+  font-size: 0.9rem;
+  color: #888;
+  max-width: 350px;
+  text-align: center;
+}
+
+.transactions-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.transactions-table th,
+.transactions-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.transactions-table th {
+  font-weight: 600;
+  color: #555;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.transactions-table td {
+  color: #333;
+}
+
+.transactions-table thead tr:hover {
+  background-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.transactions-table tbody tr {
+  cursor: pointer;
+}
+
+.transactions-table tbody tr:hover {
+  background-color: rgba(66, 185, 131, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(66, 185, 131, 0.15);
+  transition: all 0.3s ease;
+  color: inherit;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.success {
+  background-color: rgba(66, 185, 131, 0.1);
+  color: #42b983;
+}
+
+.status-badge.pending {
+  background-color: rgba(245, 159, 0, 0.1);
+  color: #f59f00;
+}
+
+.status-badge.failed {
+  background-color: rgba(224, 49, 49, 0.1);
+  color: #e03131;
+}
+
+.tx-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tx-id, .address {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.date-cell {
+  white-space: nowrap;
+  min-width: 180px;
+}
+
+.copy-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.copy-button {
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #555;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 80px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -40px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.copy-tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Dark Mode Styles */
+.dark-mode .modal-content {
+  background-color: #1e1e1e;
+  border-color: #333;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .modal-header {
+  border-bottom-color: #333;
+}
+
+.dark-mode .modal-header h2 {
+  color: #4fd1a5;
+}
+
+.dark-mode .close-button {
+  color: #bbb;
+}
+
+.dark-mode .loading-indicator p {
+  color: #e0e0e0;
+}
+
+.dark-mode .close-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.dark-mode .modal-footer {
+  border-top-color: #333;
+}
+
+.dark-mode .modal-button.primary {
+  background-color: #4fd1a5;
+  color: #121212;
+}
+
+.dark-mode .modal-button.primary:hover {
+  background-color: #3cb28f;
+  box-shadow: 0 4px 8px rgba(79, 209, 165, 0.3);
+}
+
+.dark-mode .modal-button.secondary {
+  color: #4fd1a5;
+  border-color: #4fd1a5;
+}
+
+.dark-mode .modal-button.secondary:hover {
+  background-color: rgba(79, 209, 165, 0.2);
+  color: #fff;
+}
+
+.dark-mode .spinner {
+  border-color: rgba(79, 209, 165, 0.3);
+  border-top-color: #4fd1a5;
+}
+
+.dark-mode .empty-state {
+  color: #bbb;
+}
+
+.dark-mode .empty-icon {
+  color: #666;
+}
+
+.dark-mode .empty-state .hint {
+  color: #aaa;
+}
+
+.dark-mode .transactions-table th {
+  color: #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+.dark-mode .transactions-table td {
+  border-bottom-color: #333;
+  color: #e0e0e0;
+}
+
+.dark-mode .tx-id,
+.dark-mode .address {
+  color: #4fd1a5;
+}
+
+.dark-mode .transactions-table thead tr:hover {
+  background-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.dark-mode .transactions-table tbody tr:hover {
+  background-color: rgba(79, 209, 165, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(79, 209, 165, 0.15);
+  color: inherit;
+}
+
+.dark-mode .status-badge.success {
+  background-color: rgba(79, 209, 165, 0.2);
+  color: #4fd1a5;
+  font-weight: 700;
+}
+
+.dark-mode .status-badge.pending {
+  background-color: rgba(245, 159, 0, 0.2);
+  color: #f59f00;
+  font-weight: 700;
+}
+
+.dark-mode .status-badge.failed {
+  background-color: rgba(224, 49, 49, 0.2);
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
+.dark-mode .copy-button {
+  color: #4fd1a5;
+}
+
+.dark-mode .copy-button:hover {
+  background-color: rgba(79, 209, 165, 0.2);
+  color: #ffffff;
+}
+
+@media (max-width: 767px) {
+  .transactions-table th,
+  .transactions-table td {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .transactions-table {
+    min-width: 650px;
+  }
+}
+</style>

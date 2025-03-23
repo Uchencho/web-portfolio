@@ -49,6 +49,11 @@ export default {
       this.network = value
       this.dropdownOpen = false
       this.$emit('input', value)
+
+      // Also set root currentNetwork to ensure consistency
+      if (this.$root) {
+        this.$root.currentNetwork = value
+      }
     },
     closeDropdown () {
       this.dropdownOpen = false

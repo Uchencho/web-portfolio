@@ -54,6 +54,14 @@ export default {
       currentNetwork: 'testnet'
     }
   },
+  created () {
+    // Initialize default network
+  },
+  watch: {
+    currentNetwork () {
+      // Network has changed
+    }
+  },
   computed: {
     isProjectDetailRoute () {
       return this.$route.path.includes('/project/zing')

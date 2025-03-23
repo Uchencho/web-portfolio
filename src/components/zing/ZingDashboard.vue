@@ -1,6 +1,9 @@
 <template>
   <div class="project-detail">
-    <zing-sidebar @payout="openPayoutWithNetwork" />
+    <zing-sidebar
+      @payout="openPayoutWithNetwork"
+      @transactions="showTransactionsModal = true"
+    />
 
     <div class="main-content">
       <div class="project-header">
@@ -57,6 +60,21 @@
         </div>
       </div>
     </div>
+
+    <!-- Transactions Modal -->
+    <zing-transactions-modal
+      :show="showTransactionsModal"
+      :network="network"
+      @close="showTransactionsModal = false"
+    />
+
+    <!-- Transaction Detail Modal -->
+    <zing-transaction-detail-modal
+      :show="showTransactionDetailModal"
+      :transaction-hash="selectedTransactionHash"
+      :network="network"
+      @close="closeTransactionDetailModal"
+    />
   </div>
 </template>
 
@@ -65,6 +83,8 @@ import ZingSidebar from './ZingSidebar.vue'
 import ZingNetworkSelector from './ZingNetworkSelector.vue'
 import ZingChainSelector from './ZingChainSelector.vue'
 import ZingBalanceCard from './ZingBalanceCard.vue'
+import ZingTransactionsModal from './ZingTransactionsModal.vue'
+import ZingTransactionDetailModal from './ZingTransactionDetailModal.vue'
 import { fetchBalances } from './ZingAPI'
 
 export default {
@@ -73,7 +93,9 @@ export default {
     ZingSidebar,
     ZingNetworkSelector,
     ZingChainSelector,
-    ZingBalanceCard
+    ZingBalanceCard,
+    ZingTransactionsModal,
+    ZingTransactionDetailModal
   },
   inject: ['openPayoutModal'],
   data () {
@@ -85,7 +107,12 @@ export default {
         usdt: '0.00',
         eth: '0.00'
       },
-      isLoading: false
+      isLoading: false,
+      showTransactionsModal: false,
+      showTransactionDetailModal: false,
+      selectedTransactionHash: '',
+      networkDropdownOpen: false,
+      chainDropdownOpen: false
     }
   },
   computed: {
@@ -119,8 +146,16 @@ export default {
       }
     },
     openPayoutWithNetwork () {
-      this.$root.currentNetwork = this.network
-      this.openPayoutModal()
+      // Implementation will be added in future updates
+      alert('Creating a ' + (this.isMainnet ? 'Mainnet' : 'Testnet') + ' payout. This feature is coming soon!')
+    },
+    closeTransactionDetailModal () {
+      this.showTransactionDetailModal = false
+      this.selectedTransactionHash = ''
+    },
+    openTransactionDetail (hash) {
+      this.selectedTransactionHash = hash
+      this.showTransactionDetailModal = true
     },
     async loadBalances () {
       this.isLoading = true
@@ -135,7 +170,9 @@ export default {
     }
   },
   watch: {
-    network () {
+    network (newVal) {
+      // Always update the root currentNetwork value when changed in dashboard
+      this.$root.currentNetwork = newVal
       this.loadBalances()
     },
     selectedChain () {
@@ -143,6 +180,8 @@ export default {
     }
   },
   mounted () {
+    // Set root currentNetwork right away
+    this.$root.currentNetwork = this.network
     document.addEventListener('click', this.handleClickOutside)
     this.loadBalances()
   },
