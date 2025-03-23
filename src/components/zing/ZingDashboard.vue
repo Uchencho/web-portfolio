@@ -11,6 +11,7 @@
         <p class="subtitle">A modern solution for cryptocurrency transactions</p>
         <zing-network-selector
           v-model="network"
+          @input="network = $event"
           @dropdown-toggled="onNetworkDropdownToggled"
           ref="networkSelector"
         />
@@ -25,6 +26,7 @@
 
           <zing-chain-selector
             v-model="selectedChain"
+            @input="selectedChain = $event"
             :network="network"
             @dropdown-toggled="onChainDropdownToggled"
             ref="chainSelector"
@@ -146,8 +148,8 @@ export default {
       }
     },
     openPayoutWithNetwork () {
-      // Implementation will be added in future updates
-      alert('Creating a ' + (this.isMainnet ? 'Mainnet' : 'Testnet') + ' payout. This feature is coming soon!')
+      this.$root.currentNetwork = this.network
+      this.openPayoutModal()
     },
     closeTransactionDetailModal () {
       this.showTransactionDetailModal = false

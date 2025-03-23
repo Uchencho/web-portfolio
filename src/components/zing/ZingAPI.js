@@ -24,20 +24,41 @@ export async function fetchBalances (network, chain) {
 
   try {
     // Fetch token (USDC) balance
-    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chain}`)
+    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chain}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'same-origin'
+    })
+
     if (usdcResponse.ok) {
       const usdcData = await usdcResponse.json()
       balances.usdc = usdcData.value || '0.00'
     }
 
     // Fetch native token (ETH/SEP) balance
-    const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chain}`)
+    const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chain}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'same-origin'
+    })
+
     if (ethResponse.ok) {
       const ethData = await ethResponse.json()
       balances.eth = ethData.value || '0.00'
     }
   } catch (error) {
-    console.error('Error fetching balances:', error)
+    // Handle potential CORS errors
+    if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
+      console.error('CORS Error when fetching balances:', error)
+    } else {
+      console.error('Error fetching balances:', error)
+    }
   }
 
   return balances
@@ -55,45 +76,139 @@ export async function fetchTransactions (network) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/zing/transactions`)
+    const response = await fetch(`${API_BASE_URL}/zing/transactions`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'same-origin'
+    })
+
     if (response.ok) {
       const data = await response.json()
       return Array.isArray(data) ? data : []
     }
   } catch (error) {
-    console.error('Error fetching transactions:', error)
+    // Handle potential CORS errors
+    if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
+      console.error('CORS Error when fetching transactions:', error)
+    } else {
+      console.error('Error fetching transactions:', error)
+    }
   }
 
   return []
 }
 
-// Function to fetch a specific transaction by hash
+/**
+ * Fetches a specific transaction by its hash
+ * @param {string} network - The network (mainnet/testnet)
+ * @param {string} transactionHash - The hash of the transaction to fetch
+ * @returns {Promise<Object>} Transaction details
+ * @throws {Error} If transaction cannot be fetched
+ */
 export async function fetchTransactionDetails (network, transactionHash) {
-  // Simulate API request delay
-  await new Promise(resolve => setTimeout(resolve, 800))
-
-  // Simulate random error (about 30% of the time) for testing error UI
-  if (Math.random() < 0.3) {
-    throw new Error('Network error: Failed to fetch transaction details')
+  // For mainnet, reject with an appropriate error since it's not available
+  if (network === 'mainnet') {
+    const error = new Error('Mainnet transactions are not available yet')
+    console.error(error)
+    return Promise.reject(error)
   }
 
-  // In a real app, this would be an API call to your backend
-  // const response = await fetch(`/api/zing/${network}/transactions/${transactionHash}`);
-  // return response.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}/zing/transactions/${transactionHash}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'same-origin'
+    })
 
-  // For demo purposes, returning mock data
-  return {
-    destinationAddress: '0x2fef53A901D213c41a82e9f7dFBA867d6c06D253',
-    sourceAddress: '0x3Fb3537b14e2Bdc85c5a32CDb52491969c1541f6',
-    transactionHash,
-    gasPrice: '0.0000002747748584',
-    blockNumber: 7959316,
-    timestamp: '2025-03-22 22:31:02',
-    amount: {
-      value: '0.20',
-      currency: 'USD'
-    },
-    status: 'success',
-    email: 'alozyuche@gmail.com'
+    if (!response.ok) {
+      let errorMessage
+      try {
+        // Try to parse error response
+        const errorData = await response.json()
+        errorMessage = errorData.message || `Failed to fetch transaction details: ${response.status} ${response.statusText}`
+      } catch (e) {
+        // Fallback if response is not JSON
+        errorMessage = `Failed to fetch transaction details: ${response.status} ${response.statusText}`
+      }
+
+      const error = new Error(errorMessage)
+      console.error(error)
+      return Promise.reject(error)
+    }
+    return await response.json()
+  } catch (error) {
+    // Handle specific CORS errors
+    if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
+      console.error('CORS Error when fetching transaction details:', error)
+      return Promise.reject(new Error('Network request failed. This may be due to CORS restrictions. Please try again later.'))
+    }
+
+    console.error('Error fetching transaction details:', error)
+    return Promise.reject(error)
+  }
+}
+
+/**
+ * Submits a payout request to the API
+ * @param {Object} payoutData - The payout data
+ * @param {Object} payoutData.amount - Amount information
+ * @param {string} payoutData.amount.value - Amount value
+ * @param {string} payoutData.amount.currency - Amount currency (USD)
+ * @param {string} payoutData.destinationAddress - Destination wallet address
+ * @param {string} payoutData.chain - Blockchain chain (sepolia/eth)
+ * @param {string} [payoutData.email] - Optional email address
+ * @param {string} [payoutData.tokenType] - Token type (usdc/usdt)
+ * @returns {Promise<Object>} API response
+ * @throws {Error} If the payout submission fails
+ */
+export async function submitPayout (payoutData) {
+  try {
+    // Create a new payload with lowercase chain value
+    const payload = {
+      ...payoutData,
+      chain: payoutData.chain.toLowerCase() // Ensure chain is lowercase
+    }
+
+    const response = await fetch(`${API_BASE_URL}/zing/payout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'same-origin', // Include credentials if needed
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      let errorMessage
+      try {
+        // Try to parse error response
+        const errorData = await response.json()
+        errorMessage = errorData.message || `Failed with status: ${response.status} ${response.statusText}`
+      } catch (e) {
+        // Fallback if response is not JSON
+        errorMessage = `Failed with status: ${response.status} ${response.statusText}`
+      }
+
+      throw new Error(errorMessage)
+    }
+
+    return await response.json()
+  } catch (error) {
+    // Handle specific CORS errors
+    if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
+      console.error('CORS Error:', error)
+      throw new Error('Network request failed. This may be due to CORS restrictions. Please try again later.')
+    }
+
+    console.error('Error submitting payout:', error)
+    throw error
   }
 }

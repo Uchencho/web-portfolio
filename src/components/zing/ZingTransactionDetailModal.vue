@@ -104,7 +104,7 @@
         </div>
       </div>
 
-      <div class="modal-footer" v-if="transaction && !error && network === 'testnet'">
+      <div class="modal-footer" v-if="transaction && network === 'testnet'">
         <a
           :href="`https://sepolia.etherscan.io/tx/${transaction.transactionHash}`"
           target="_blank"
@@ -167,12 +167,14 @@ export default {
 
       this.isLoading = true
       this.error = null
+      this.transaction = null // Reset transaction immediately
 
       try {
         this.transaction = await fetchTransactionDetails(this.network, this.transactionHash)
       } catch (error) {
         console.error('Error fetching transaction details:', error)
-        this.error = 'error' // Just set to any non-null value to trigger the error state
+        // Set error to true to trigger the error state in the UI
+        this.error = true
         this.transaction = null
       } finally {
         this.isLoading = false
