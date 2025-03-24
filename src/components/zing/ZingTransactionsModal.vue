@@ -80,6 +80,7 @@
       :show="showTransactionDetailModal"
       :transaction-hash="selectedTransactionHash"
       :network="effectiveNetwork"
+      :chain="selectedTransactionChain"
       @close="closeTransactionDetailModal"
     />
   </div>
@@ -112,7 +113,8 @@ export default {
       clipboardMessage: '',
       forceMainnetEmptyState: false,
       showTransactionDetailModal: false,
-      selectedTransactionHash: ''
+      selectedTransactionHash: '',
+      selectedTransactionChain: ''
     }
   },
   computed: {
@@ -159,7 +161,12 @@ export default {
       this.transactions = []
       this.isLoading = true
       try {
-        const data = await fetchTransactions(this.effectiveNetwork)
+        // Get the currently selected chain from the dashboard if available
+        const selectedChain = this.$root && this.$root.currentChain
+          ? this.$root.currentChain
+          : null
+
+        const data = await fetchTransactions(this.effectiveNetwork, selectedChain)
         this.transactions = data
       } catch (error) {
         console.error('Error loading transactions:', error)
@@ -217,11 +224,13 @@ export default {
     },
     openTransactionDetails (transaction) {
       this.selectedTransactionHash = transaction.transactionHash
+      this.selectedTransactionChain = transaction.chain
       this.showTransactionDetailModal = true
     },
     closeTransactionDetailModal () {
       this.showTransactionDetailModal = false
       this.selectedTransactionHash = ''
+      this.selectedTransactionChain = ''
     }
   },
   watch: {

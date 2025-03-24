@@ -67,7 +67,7 @@
           <!-- Gas Price -->
           <div class="detail-row">
             <div class="detail-label">Gas Price</div>
-            <div class="detail-value">{{ transaction.gasPrice }} ETH</div>
+            <div class="detail-value">{{ transaction.gasPrice }} {{ getGasPriceCurrency() }}</div>
           </div>
 
           <!-- From Address -->
@@ -106,12 +106,12 @@
 
       <div class="modal-footer" v-if="transaction && network === 'testnet'">
         <a
-          :href="`https://sepolia.etherscan.io/tx/${transaction.transactionHash}`"
+          :href="getExplorerLink()"
           target="_blank"
           rel="noopener noreferrer"
           class="modal-button primary"
         >
-          View on Etherscan
+          {{ getExplorerButtonText() }}
         </a>
       </div>
     </div>
@@ -136,6 +136,10 @@ export default {
       type: String,
       required: true,
       validator: value => ['testnet', 'mainnet'].includes(value)
+    },
+    chain: {
+      type: String,
+      default: ''
     }
   },
   data () {
@@ -170,7 +174,12 @@ export default {
       this.transaction = null // Reset transaction immediately
 
       try {
-        this.transaction = await fetchTransactionDetails(this.network, this.transactionHash)
+        // Use the chain prop if available
+        this.transaction = await fetchTransactionDetails(
+          this.network,
+          this.transactionHash,
+          this.chain || null
+        )
       } catch (error) {
         console.error('Error fetching transaction details:', error)
         // Set error to true to trigger the error state in the UI
@@ -207,6 +216,52 @@ export default {
         .catch(err => {
           console.error('Failed to copy: ', err)
         })
+    },
+    getExplorerLink () {
+      if (!this.transaction || !this.transaction.transactionHash) return '#'
+
+      // Get the chain from transaction or props, defaulting to 'sepolia' if not provided
+      const txChain = this.transaction.chain ? this.transaction.chain.toLowerCase() : ''
+      const propChain = this.chain ? this.chain.toLowerCase() : ''
+      const chain = txChain || propChain || 'sepolia'
+
+      // Handle all BNB chain variations
+      if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
+        return `https://testnet.bscscan.com/tx/${this.transaction.transactionHash}`
+      } else {
+        // Default to Sepolia Etherscan
+        return `https://sepolia.etherscan.io/tx/${this.transaction.transactionHash}`
+      }
+    },
+    getExplorerButtonText () {
+      if (!this.transaction) return 'View on Blockchain Explorer'
+
+      // Get the chain from transaction or props, defaulting to 'sepolia' if not provided
+      const txChain = this.transaction.chain ? this.transaction.chain.toLowerCase() : ''
+      const propChain = this.chain ? this.chain.toLowerCase() : ''
+      const chain = txChain || propChain || 'sepolia'
+
+      // Handle all BNB chain variations
+      if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
+        return 'View on BSC Scan'
+      } else {
+        return 'View on Etherscan'
+      }
+    },
+    getGasPriceCurrency () {
+      if (!this.transaction) return 'ETH'
+
+      // Get the chain from transaction or props, defaulting to 'sepolia' if not provided
+      const txChain = this.transaction.chain ? this.transaction.chain.toLowerCase() : ''
+      const propChain = this.chain ? this.chain.toLowerCase() : ''
+      const chain = txChain || propChain || 'sepolia'
+
+      // Return "BNB" for BNB chain variations, "ETH" otherwise
+      if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
+        return 'BNB'
+      } else {
+        return 'ETH'
+      }
     }
   }
 }
