@@ -16,8 +16,12 @@
             <div class="select-wrapper">
               <select id="chain" v-model="formData.chain" required @change="validateAddress">
                 <option value="" disabled>Select a network</option>
-                <option value="ARB">Arbitrum (ARB)</option>
-                <option value="POLYGON">Polygon (MATIC)</option>
+                <option value="arb">Arbitrum (ARB)</option>
+                <option value="polygon">Polygon (MATIC)</option>
+                <option value="sepolia" v-if="network === 'testnet'">Sepolia (SEP)</option>
+                <option value="tbnb" v-if="network === 'testnet'">BNB Testnet (tBNB)</option>
+                <option value="eth" v-if="network === 'mainnet'">Ethereum (ETH)</option>
+                <option value="bnb" v-if="network === 'mainnet'">BNB Chain (BNB)</option>
               </select>
               <div class="select-arrow"></div>
             </div>
@@ -47,7 +51,7 @@
           </div>
 
           <div class="form-group">
-            <label for="amount">Amount (USDC)</label>
+            <label for="amount">Amount ({{ formData.tokenType.toUpperCase() }})</label>
             <div class="amount-input-wrapper" :class="{ 'error': amountError }">
               <input
                 type="number"
@@ -62,37 +66,116 @@
               />
               <div class="currency-badge">
                 <span class="currency-icon">$</span>
-                <span class="currency-label">USDC</span>
+                <span class="currency-label">{{ formData.tokenType || 'USDC' }}</span>
               </div>
             </div>
             <small class="helper-text" :class="{ 'error-text': amountError }">
-              {{ amountError || "Minimum amount: 0.01 USDC" }}
+              {{ amountError || `Minimum amount: 0.01 ${formData.tokenType.toUpperCase()}` }}
             </small>
           </div>
 
-          <div class="summary-box" v-if="formData.chain && formData.amount && !addressError && !amountError">
-            <div class="summary-title">Transaction Summary</div>
-            <div class="summary-row">
-              <span>Network:</span>
-              <span class="summary-value">{{ formData.chain === 'ARB' ? 'Arbitrum' : 'Polygon' }}</span>
+          <div class="form-group">
+            <label for="tokenType">Token Type</label>
+            <div class="select-wrapper">
+              <select id="tokenType" v-model="formData.tokenType" required>
+                <option value="usdc">USDC</option>
+                <option value="usdt">USDT</option>
+              </select>
+              <div class="select-arrow"></div>
             </div>
-            <div class="summary-row">
-              <span>Amount:</span>
-              <span class="summary-value">{{ formData.amount }} USDC</span>
+            <small class="helper-text">
+              Select the stablecoin type for this payout
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email (Optional)</label>
+            <div class="input-wrapper" :class="{ 'error': emailError }">
+              <input
+                type="email"
+                id="email"
+                v-model="formData.email"
+                placeholder="user@example.com"
+                @input="validateEmail"
+                @blur="validateEmail(true)"
+              />
+              <div class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/>
+                </svg>
+              </div>
             </div>
-            <div class="summary-row">
-              <span>Estimated Fee:</span>
-              <span class="summary-value">~0.001 {{ formData.chain === 'ARB' ? 'ETH' : 'MATIC' }}</span>
+            <small class="helper-text" :class="{ 'error-text': emailError }">
+              {{ emailError || "Notification will be sent to this email (optional)" }}
+            </small>
+          </div>
+
+          <div class="payout-modal__transaction-summary-container" v-if="step === 'createPayoutReview'">
+            <div class="payout-modal__transaction-summary">
+              <div class="transaction-summary-title">
+                Transaction Summary
+              </div>
+              <div class="transaction-summary-item">
+                <div class="transaction-summary-label">
+                  Network
+                </div>
+                <div class="transaction-summary-value">
+                  {{ getNetworkDisplayName() }}
+                </div>
+              </div>
+              <div class="transaction-summary-item">
+                <div class="transaction-summary-label">
+                  Amount
+                </div>
+                <div class="transaction-summary-value">
+                  {{ formData.amount }} {{ formData.tokenType.toUpperCase() }}
+                </div>
+              </div>
+              <div class="transaction-summary-item">
+                <div class="transaction-summary-label">
+                  Recipient
+                </div>
+                <div class="transaction-summary-value address">
+                  {{ formData.address }}
+                </div>
+              </div>
+              <div class="transaction-summary-item">
+                <div class="transaction-summary-label">
+                  Token Type
+                </div>
+                <div class="transaction-summary-value">
+                  {{ formData.tokenType.toUpperCase() }}
+                </div>
+              </div>
+              <div class="transaction-summary-item" v-if="formData.email">
+                <div class="transaction-summary-label">
+                  Email
+                </div>
+                <div class="transaction-summary-value">
+                  {{ formData.email }}
+                </div>
+              </div>
             </div>
           </div>
 
-          <button type="submit" class="send-button" :disabled="!isFormValid">
-            <span class="button-icon">
+          <div v-if="apiError" class="api-error-container">
+            <div class="api-error-message">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" class="error-icon">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
+              </svg>
+              <span>{{ apiError }}</span>
+            </div>
+            <button type="button" class="clear-error-button" @click="apiError = ''">Dismiss</button>
+          </div>
+
+          <button type="submit" class="send-button" :disabled="!isFormValid || isSubmitting">
+            <span class="button-icon" v-if="!isSubmitting">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
               </svg>
             </span>
-            Send Payment
+            <span class="spinner-icon" v-if="isSubmitting"></span>
+            {{ isSubmitting ? 'Sending...' : (step === 'createPayout' ? 'Confirm Payout' : 'Send') }}
           </button>
         </form>
       </div>
@@ -101,6 +184,8 @@
 </template>
 
 <script>
+import { submitPayout } from './zing/ZingAPI'
+
 export default {
   name: 'PayoutModal',
   props: {
@@ -121,14 +206,21 @@ export default {
       formData: {
         chain: '',
         address: '',
-        amount: ''
+        amount: '',
+        email: '',
+        tokenType: 'usdc'
       },
       addressError: '',
       amountError: '',
+      emailError: '',
       touched: {
         address: false,
-        amount: false
-      }
+        amount: false,
+        email: false
+      },
+      step: 'createPayout',
+      isSubmitting: false,
+      apiError: ''
     }
   },
   computed: {
@@ -137,7 +229,8 @@ export default {
              this.formData.address &&
              this.formData.amount &&
              !this.addressError &&
-             !this.amountError
+             !this.amountError &&
+             !this.emailError
     }
   },
   methods: {
@@ -198,37 +291,144 @@ export default {
       this.amountError = ''
       return true
     },
+    validateEmail (forceTouched = false) {
+      if (forceTouched) {
+        this.touched.email = true
+      }
+
+      if (!this.formData.email || !this.touched.email) {
+        this.emailError = ''
+        return
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+      if (!emailRegex.test(this.formData.email)) {
+        this.emailError = 'Invalid email format'
+        return false
+      }
+
+      this.emailError = ''
+      return true
+    },
     validateAndSubmit () {
       // Mark all fields as touched
       this.touched.address = true
       this.touched.amount = true
+      this.touched.email = true
 
       // Validate all fields
       const isAddressValid = this.validateAddress()
       const isAmountValid = this.validateAmount()
+      const isEmailValid = this.validateEmail()
 
-      if (isAddressValid && isAmountValid) {
-        this.submitPayout()
+      if (isAddressValid && isAmountValid && isEmailValid) {
+        if (this.step === 'createPayout') {
+          // Move to review step
+          this.step = 'createPayoutReview'
+        } else if (this.step === 'createPayoutReview') {
+          // Submit the payout
+          this.submitPayout()
+        }
       }
     },
     submitPayout () {
-      // Here you would typically send the data to an API
+      // Reset any previous API errors
+      this.apiError = ''
+
+      // Log the submission data
       console.log('Submitting payout:', this.formData)
-      alert(`Payout of ${this.formData.amount} USDC to ${this.formData.address} on ${this.formData.chain === 'ARB' ? 'Arbitrum' : 'Polygon'} initiated!`)
-      this.resetForm()
-      this.closeModal()
+
+      // Set loading state
+      this.isSubmitting = true
+
+      // Prepare the payload
+      const payload = {
+        amount: {
+          value: String(this.formData.amount),
+          currency: 'USD'
+        },
+        destinationAddress: this.formData.address,
+        chain: this.formData.chain,
+        email: this.formData.email || undefined,
+        tokenType: this.formData.tokenType
+      }
+
+      // Use the ZingAPI submitPayout function
+      submitPayout(payload)
+        .then(data => {
+          console.log('Payout successful:', data)
+
+          // Close the modal
+          this.resetForm()
+          this.closeModal()
+
+          // Emit an event to show the transactions list view
+          this.$emit('show-transactions')
+        })
+        .catch(error => {
+          console.error('Error submitting payout:', error)
+          // Set error message for display in UI
+          this.apiError = error.message || 'Failed to submit payout. Please try again.'
+        })
+        .finally(() => {
+          this.isSubmitting = false
+        })
     },
     resetForm () {
       this.formData = {
         chain: '',
         address: '',
-        amount: ''
+        amount: '',
+        email: '',
+        tokenType: 'usdc'
       }
       this.addressError = ''
       this.amountError = ''
+      this.emailError = ''
+      this.apiError = ''
       this.touched = {
         address: false,
-        amount: false
+        amount: false,
+        email: false
+      }
+      this.step = 'createPayout'
+    },
+    getNetworkDisplayName () {
+      switch (this.formData.chain.toLowerCase()) {
+        case 'arb':
+          return 'Arbitrum'
+        case 'polygon':
+          return 'Polygon'
+        case 'sepolia':
+          return 'Sepolia'
+        case 'eth':
+          return 'Ethereum'
+        case 'bnb':
+          return 'BNB Chain'
+        case 'tbnb':
+          return 'BNB Testnet'
+        default:
+          return this.formData.chain
+      }
+    },
+    getFeeCurrency () {
+      switch (this.formData.chain.toLowerCase()) {
+        case 'arb':
+          return 'ETH'
+        case 'polygon':
+          return 'MATIC'
+        case 'sepolia':
+          return 'SEP'
+        case 'eth':
+          return 'ETH'
+        case 'bnb':
+          return 'BNB'
+        case 'tbnb':
+          return 'tBNB'
+        default:
+          return 'ETH'
       }
     }
   }
@@ -245,9 +445,13 @@ export default {
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   z-index: 1000;
   backdrop-filter: blur(3px);
+  overflow-y: auto;
+  padding: 20px 0;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .modal-content {
@@ -258,6 +462,11 @@ export default {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   animation: modal-appear 0.3s ease-out;
+  margin: auto;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 @keyframes modal-appear {
@@ -309,6 +518,8 @@ export default {
 
 .modal-body {
   padding: 25px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .form-group {
@@ -428,28 +639,53 @@ select {
   margin-bottom: 24px;
 }
 
+.payout-modal__transaction-summary-container {
+  background-color: #f5f9f7;
+  border: 1px solid #e0f0e9;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 24px;
+}
+
+.payout-modal__transaction-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transaction-summary-title {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+
+.transaction-summary-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.transaction-summary-label {
+  color: #666;
+}
+
+.transaction-summary-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.transaction-summary-value.address {
+  font-family: monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
 .summary-title {
   font-weight: 600;
   color: #2c3e50;
   margin-bottom: 10px;
   font-size: 0.95rem;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.summary-row:last-child {
-  margin-bottom: 0;
-}
-
-.summary-value {
-  font-weight: 600;
-  color: #2c3e50;
 }
 
 .send-button {
@@ -491,6 +727,23 @@ select {
 .button-icon {
   display: flex;
   align-items: center;
+}
+
+.spinner-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Dark mode styles */
@@ -599,6 +852,23 @@ select {
   background-color: #2a7d63;
 }
 
+:deep(.dark-mode) .payout-modal__transaction-summary-container {
+  background-color: #252525;
+  border-color: #333;
+}
+
+:deep(.dark-mode) .transaction-summary-title {
+  color: #f0f0f0;
+}
+
+:deep(.dark-mode) .transaction-summary-label {
+  color: #bbb;
+}
+
+:deep(.dark-mode) .transaction-summary-value {
+  color: #f0f0f0;
+}
+
 .network-indicator {
   padding: 6px 15px;
   background-color: #fff8e1;
@@ -668,5 +938,134 @@ select {
 :deep(.dark-mode) .network-indicator.mainnet {
   background-color: #2b1a1a;
   color: #ff6b6b;
+}
+
+/* Additional mobile-specific styles */
+@media (max-width: 480px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    padding: 10px 0;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 85vh;
+    margin: 20px auto;
+  }
+
+  .modal-body {
+    padding: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  input, select {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .transaction-summary-item {
+    flex-direction: column;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .transaction-summary-value {
+    margin-top: 4px;
+  }
+
+  .currency-badge {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.3rem;
+  }
+
+  /* Fix for iOS viewport height issues */
+  html, body {
+    height: -webkit-fill-available;
+  }
+
+  .network-indicator {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Add a container for small screens that can scroll independently */
+@media (max-height: 600px) {
+  .modal-content {
+    max-height: none; /* Remove height restriction on very small screens */
+    height: auto;
+  }
+
+  .modal-backdrop {
+    align-items: center;
+  }
+}
+
+.api-error-container {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 24px;
+  color: #e43;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.api-error-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.error-icon {
+  color: #e43;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.clear-error-button {
+  align-self: flex-end;
+  background-color: transparent;
+  color: #e43;
+  border: 1px solid #e43;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-error-button:hover {
+  background-color: rgba(238, 68, 51, 0.1);
+}
+
+/* Dark mode styles for the error container */
+:deep(.dark-mode) .api-error-container {
+  background-color: rgba(255, 92, 92, 0.1);
+  border-color: #b35;
+  color: #ff6b6b;
+}
+
+:deep(.dark-mode) .error-icon {
+  color: #ff6b6b;
+}
+
+:deep(.dark-mode) .clear-error-button {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+:deep(.dark-mode) .clear-error-button:hover {
+  background-color: rgba(255, 107, 107, 0.2);
 }
 </style>
