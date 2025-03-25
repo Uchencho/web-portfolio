@@ -34,6 +34,7 @@
                 <th>Transaction Hash</th>
                 <th>Date</th>
                 <th>Amount</th>
+                <th>Token Type</th>
                 <th>Destination</th>
                 <th>Status</th>
                 <th>Email</th>
@@ -56,6 +57,7 @@
                 </td>
                 <td class="date-cell">{{ formatDate(tx.timestamp) }}</td>
                 <td>{{ formatAmount(tx.amount) }}</td>
+                <td class="token-type">{{ tx.tokenType ? tx.tokenType.toUpperCase() : 'USDC' }}</td>
                 <td class="address">{{ truncateAddress(tx.destinationAddress) }}</td>
                 <td>
                   <span class="status-badge" :class="tx.status.toLowerCase()">

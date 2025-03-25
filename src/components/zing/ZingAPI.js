@@ -26,8 +26,8 @@ export async function fetchBalances (network, chain) {
     // For BNB chains, use 'bnbTestnet' as the chain parameter
     const chainParam = chain === 'bnb' || chain === 'tbnb' ? 'bnbTestnet' : chain
 
-    // Fetch token (USDC) balance
-    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}`, {
+    // Fetch USDC token balance with tokenType parameter
+    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdc`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -41,8 +41,22 @@ export async function fetchBalances (network, chain) {
       balances.usdc = usdcData.value || '0.00'
     }
 
+    // Fetch USDT token balance with tokenType parameter
+    const usdtResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdt`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'same-origin'
+    })
+
+    if (usdtResponse.ok) {
+      const usdtData = await usdtResponse.json()
+      balances.usdt = usdtData.value || '0.00'
+    }
+
     // Fetch native token (ETH/SEP/BNB) balance
-    // We already set the correct chain parameter above
     const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chainParam}`, {
       method: 'GET',
       headers: {

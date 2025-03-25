@@ -203,6 +203,10 @@ export default {
     },
     formatAmount (amount) {
       if (!amount) return 'N/A'
+      // If tokenType is available, use it instead of amount.currency
+      if (this.transaction && this.transaction.tokenType) {
+        return `${amount.value} ${this.transaction.tokenType.toUpperCase()}`
+      }
       return `${amount.value} ${amount.currency}`
     },
     copyToClipboard (text) {

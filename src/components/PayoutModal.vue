@@ -352,7 +352,7 @@ export default {
         destinationAddress: this.formData.address,
         chain: this.formData.chain,
         email: this.formData.email || undefined,
-        tokenType: this.formData.tokenType
+        tokenType: this.formData.tokenType.toLowerCase()
       }
 
       // Use the ZingAPI submitPayout function
