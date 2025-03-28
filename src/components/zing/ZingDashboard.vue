@@ -183,6 +183,10 @@ export default {
           return 'BNB'
         case 'tbnb':
           return 'tBNB'
+        case 'avaxFuji':
+          return 'AVAX'
+        case 'avax':
+          return 'AVAX'
         default:
           return 'ETH'
       }

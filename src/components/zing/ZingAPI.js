@@ -23,11 +23,18 @@ export async function fetchBalances (network, chain) {
   }
 
   try {
-    // For BNB chains, use 'bnbTestnet' as the chain parameter
-    const chainParam = chain === 'bnb' || chain === 'tbnb' ? 'bnbTestnet' : chain
+    // Handle chain parameter
+    let chainParam = chain
 
-    // Fetch token (USDC) balance
-    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}`, {
+    // Special handling for BNB chains
+    if (chainParam.toLowerCase() === 'bnb' || chainParam.toLowerCase() === 'tbnb') {
+      chainParam = 'bnbTestnet'
+    }
+    // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
+    // AVAX mainnet should be preserved as 'avax' with correct casing
+
+    // Fetch USDC token balance with tokenType parameter
+    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdc`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -41,8 +48,22 @@ export async function fetchBalances (network, chain) {
       balances.usdc = usdcData.value || '0.00'
     }
 
+    // Fetch USDT token balance with tokenType parameter
+    const usdtResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdt`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'same-origin'
+    })
+
+    if (usdtResponse.ok) {
+      const usdtData = await usdtResponse.json()
+      balances.usdt = usdtData.value || '0.00'
+    }
+
     // Fetch native token (ETH/SEP/BNB) balance
-    // We already set the correct chain parameter above
     const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chainParam}`, {
       method: 'GET',
       headers: {
@@ -84,13 +105,17 @@ export async function fetchTransactions (network, chain) {
     let url = `${API_BASE_URL}/zing/transactions`
 
     // If chain is provided, add it as a query parameter
-    // and handle BNB chains specially
     if (chain) {
-      // Normalize chain value
-      let chainValue = chain.toLowerCase()
-      if (chainValue === 'bnb' || chainValue === 'tbnb') {
+      // Handle chain value
+      let chainValue = chain
+
+      // Special handling for BNB chains
+      if (chainValue.toLowerCase() === 'bnb' || chainValue.toLowerCase() === 'tbnb') {
         chainValue = 'bnbTestnet'
       }
+      // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
+      // AVAX mainnet should be preserved as 'avax' with correct casing
+
       url += `?chain=${chainValue}`
     }
 
@@ -139,13 +164,17 @@ export async function fetchTransactionDetails (network, transactionHash, chain) 
     let url = `${API_BASE_URL}/zing/transactions/${transactionHash}`
 
     // If chain is provided, add it as a query parameter
-    // and handle BNB chains specially
     if (chain) {
-      // Normalize chain value
-      let chainValue = chain.toLowerCase()
-      if (chainValue === 'bnb' || chainValue === 'tbnb') {
+      // Handle chain value
+      let chainValue = chain
+
+      // Special handling for BNB chains
+      if (chainValue.toLowerCase() === 'bnb' || chainValue.toLowerCase() === 'tbnb') {
         chainValue = 'bnbTestnet'
       }
+      // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
+      // AVAX mainnet should be preserved as 'avax' with correct casing
+
       url += `?chain=${chainValue}`
     }
 
@@ -196,30 +225,38 @@ export async function fetchTransactionDetails (network, transactionHash, chain) 
  * @param {string} payoutData.chain - Blockchain chain (sepolia/eth)
  * @param {string} [payoutData.email] - Optional email address
  * @param {string} [payoutData.tokenType] - Token type (usdc/usdt)
+ * @param {string} payoutData.networkType - Network type (testnet/mainnet)
+ * @param {Object} [customHeaders] - Optional custom headers to include in the request
  * @returns {Promise<Object>} API response
  * @throws {Error} If the payout submission fails
  */
-export async function submitPayout (payoutData) {
+export async function submitPayout (payoutData, customHeaders = {}) {
   try {
-    // Create a new payload with lowercase chain value and adjust for BNB chains
-    let chainValue = payoutData.chain.toLowerCase() // Ensure chain is lowercase
+    // Create a new payload and preserve case for avaxFuji
+    let chainValue = payoutData.chain
 
-    // For BNB chains, use 'bnbTestnet' as the chain parameter
-    if (chainValue === 'bnb' || chainValue === 'tbnb') {
+    // Special handling for BNB chains
+    if (chainValue.toLowerCase() === 'bnb' || chainValue.toLowerCase() === 'tbnb') {
       chainValue = 'bnbTestnet'
     }
+    // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
+    // AVAX mainnet should be preserved as 'avax' with correct casing
 
     const payload = {
       ...payoutData,
       chain: chainValue
     }
 
+    // Merge default headers with custom headers
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...customHeaders
+    }
+
     const response = await fetch(`${API_BASE_URL}/zing/payout`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
+      headers,
       mode: 'cors', // Explicitly set CORS mode
       credentials: 'same-origin', // Include credentials if needed
       body: JSON.stringify(payload)

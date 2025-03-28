@@ -18,6 +18,12 @@
           <span class="dot testnet-dot"></span>BNB Testnet
         </div>
         <div class="dropdown-option"
+             :class="{ 'active': selectedChain === 'avaxFuji' }"
+             @click.stop="selectChain('avaxFuji')"
+             v-if="network === 'testnet'">
+          <span class="dot testnet-dot"></span>AVAX Fuji
+        </div>
+        <div class="dropdown-option"
              :class="{ 'active': selectedChain === 'eth' }"
              @click.stop="selectChain('eth')"
              v-if="network === 'mainnet'">
@@ -28,6 +34,12 @@
              @click.stop="selectChain('bnb')"
              v-if="network === 'mainnet'">
           <span class="dot mainnet-dot"></span>BNB Chain
+        </div>
+        <div class="dropdown-option"
+             :class="{ 'active': selectedChain === 'avax' }"
+             @click.stop="selectChain('avax')"
+             v-if="network === 'mainnet'">
+          <span class="dot mainnet-dot"></span>Avalanche
         </div>
       </div>
     </div>
@@ -41,7 +53,7 @@ export default {
     value: {
       type: String,
       default: 'sepolia',
-      validator: value => ['sepolia', 'eth', 'bnb', 'tbnb'].includes(value)
+      validator: value => ['sepolia', 'eth', 'bnb', 'tbnb', 'avaxFuji', 'avax'].includes(value)
     },
     network: {
       type: String,
@@ -78,6 +90,10 @@ export default {
           return 'BNB Chain'
         case 'tbnb':
           return 'BNB Testnet'
+        case 'avaxFuji':
+          return 'AVAX Fuji'
+        case 'avax':
+          return 'Avalanche'
         default:
           return this.selectedChain
       }
@@ -90,11 +106,11 @@ export default {
     network (newNetwork) {
       // Update chain when network changes
       if (newNetwork === 'testnet') {
-        if (!['sepolia', 'tbnb'].includes(this.selectedChain)) {
+        if (!['sepolia', 'tbnb', 'avaxFuji'].includes(this.selectedChain)) {
           this.selectChain('sepolia')
         }
       } else if (newNetwork === 'mainnet') {
-        if (!['eth', 'bnb'].includes(this.selectedChain)) {
+        if (!['eth', 'bnb', 'avax'].includes(this.selectedChain)) {
           this.selectChain('eth')
         }
       }

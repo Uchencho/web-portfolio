@@ -16,12 +16,12 @@
             <div class="select-wrapper">
               <select id="chain" v-model="formData.chain" required @change="validateAddress">
                 <option value="" disabled>Select a network</option>
-                <option value="arb">Arbitrum (ARB)</option>
-                <option value="polygon">Polygon (MATIC)</option>
                 <option value="sepolia" v-if="network === 'testnet'">Sepolia (SEP)</option>
                 <option value="tbnb" v-if="network === 'testnet'">BNB Testnet (tBNB)</option>
+                <option value="avaxFuji" v-if="network === 'testnet'">AVAX Fuji (AVAX)</option>
                 <option value="eth" v-if="network === 'mainnet'">Ethereum (ETH)</option>
                 <option value="bnb" v-if="network === 'mainnet'">BNB Chain (BNB)</option>
+                <option value="avax" v-if="network === 'mainnet'">Avalanche (AVAX)</option>
               </select>
               <div class="select-arrow"></div>
             </div>
@@ -125,6 +125,14 @@
               </div>
               <div class="transaction-summary-item">
                 <div class="transaction-summary-label">
+                  Network Type
+                </div>
+                <div class="transaction-summary-value">
+                  {{ network.toUpperCase() }}
+                </div>
+              </div>
+              <div class="transaction-summary-item">
+                <div class="transaction-summary-label">
                   Amount
                 </div>
                 <div class="transaction-summary-value">
@@ -181,6 +189,47 @@
       </div>
     </div>
   </div>
+
+  <!-- Password Confirmation Modal for Mainnet Transactions -->
+  <div class="password-modal-backdrop" v-if="showPasswordModal" @click.self="cancelPasswordConfirmation">
+    <div class="password-modal-content">
+      <div class="password-modal-header">
+        <h3>Mainnet Transaction Confirmation</h3>
+        <button class="close-button" @click="cancelPasswordConfirmation">&times;</button>
+      </div>
+      <div class="password-modal-body">
+        <div class="warning-message">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" class="warning-icon">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" fill="currentColor"/>
+          </svg>
+          <p>You are about to execute a <strong>MAINNET transaction</strong>. This will use real funds. Please enter your security password to proceed.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="securityPassword">Security Password</label>
+          <div class="input-wrapper" :class="{ 'error': passwordError }">
+            <input
+              type="password"
+              id="securityPassword"
+              v-model="securityPassword"
+              placeholder="Enter your security password"
+              required
+              ref="passwordInput"
+            />
+          </div>
+          <small class="helper-text error-text" v-if="passwordError">{{ passwordError }}</small>
+        </div>
+
+        <div class="password-modal-actions">
+          <button class="cancel-button" @click="cancelPasswordConfirmation">Cancel</button>
+          <button class="confirm-button" @click="confirmPasswordAndSubmit" :disabled="!securityPassword || isSubmitting">
+            <span class="spinner-icon" v-if="isSubmitting"></span>
+            {{ isSubmitting ? 'Processing...' : 'Confirm Transaction' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -220,7 +269,11 @@ export default {
       },
       step: 'createPayout',
       isSubmitting: false,
-      apiError: ''
+      apiError: '',
+      // Password modal properties
+      showPasswordModal: false,
+      securityPassword: '',
+      passwordError: ''
     }
   },
   computed: {
@@ -328,12 +381,38 @@ export default {
           // Move to review step
           this.step = 'createPayoutReview'
         } else if (this.step === 'createPayoutReview') {
-          // Submit the payout
-          this.submitPayout()
+          // For mainnet transactions, show password confirmation
+          if (this.network === 'mainnet') {
+            this.showPasswordModal = true
+            // Focus the password input after the modal is shown
+            this.$nextTick(() => {
+              if (this.$refs.passwordInput) {
+                this.$refs.passwordInput.focus()
+              }
+            })
+          } else {
+            // For testnet, proceed without password
+            this.submitPayout()
+          }
         }
       }
     },
-    submitPayout () {
+    cancelPasswordConfirmation () {
+      this.showPasswordModal = false
+      this.securityPassword = ''
+      this.passwordError = ''
+    },
+    confirmPasswordAndSubmit () {
+      if (!this.securityPassword) {
+        this.passwordError = 'Security password is required for mainnet transactions'
+        return
+      }
+
+      this.passwordError = ''
+      this.submitPayout(this.securityPassword)
+      this.showPasswordModal = false
+    },
+    submitPayout (password = null) {
       // Reset any previous API errors
       this.apiError = ''
 
@@ -352,11 +431,23 @@ export default {
         destinationAddress: this.formData.address,
         chain: this.formData.chain,
         email: this.formData.email || undefined,
-        tokenType: this.formData.tokenType
+        tokenType: this.formData.tokenType.toLowerCase(),
+        networkType: this.network
       }
 
-      // Use the ZingAPI submitPayout function
-      submitPayout(payload)
+      // Prepare headers
+      const headers = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      }
+
+      // Add password header for mainnet transactions
+      if (this.network === 'mainnet' && password) {
+        headers['x-password'] = password
+      }
+
+      // Use the ZingAPI submitPayout function with custom headers
+      submitPayout(payload, headers)
         .then(data => {
           console.log('Payout successful:', data)
 
@@ -371,9 +462,23 @@ export default {
           console.error('Error submitting payout:', error)
           // Set error message for display in UI
           this.apiError = error.message || 'Failed to submit payout. Please try again.'
+
+          // If this was a mainnet transaction with password and it failed,
+          // we might want to show the password modal again
+          if (this.network === 'mainnet' && password &&
+              (error.message?.includes('password') || error.message?.includes('unauthorized'))) {
+            this.showPasswordModal = true
+            this.passwordError = 'Invalid password. Please try again.'
+            this.$nextTick(() => {
+              if (this.$refs.passwordInput) {
+                this.$refs.passwordInput.focus()
+              }
+            })
+          }
         })
         .finally(() => {
           this.isSubmitting = false
+          this.securityPassword = ''
         })
     },
     resetForm () {
@@ -396,11 +501,8 @@ export default {
       this.step = 'createPayout'
     },
     getNetworkDisplayName () {
-      switch (this.formData.chain.toLowerCase()) {
-        case 'arb':
-          return 'Arbitrum'
-        case 'polygon':
-          return 'Polygon'
+      const chainLower = this.formData.chain.toLowerCase()
+      switch (chainLower) {
         case 'sepolia':
           return 'Sepolia'
         case 'eth':
@@ -409,16 +511,17 @@ export default {
           return 'BNB Chain'
         case 'tbnb':
           return 'BNB Testnet'
+        case 'avaxfuji':
+          return 'AVAX Fuji'
+        case 'avax':
+          return 'Avalanche'
         default:
           return this.formData.chain
       }
     },
     getFeeCurrency () {
-      switch (this.formData.chain.toLowerCase()) {
-        case 'arb':
-          return 'ETH'
-        case 'polygon':
-          return 'MATIC'
+      const chainLower = this.formData.chain.toLowerCase()
+      switch (chainLower) {
         case 'sepolia':
           return 'SEP'
         case 'eth':
@@ -427,6 +530,10 @@ export default {
           return 'BNB'
         case 'tbnb':
           return 'tBNB'
+        case 'avaxfuji':
+          return 'AVAX'
+        case 'avax':
+          return 'AVAX'
         default:
           return 'ETH'
       }
@@ -834,41 +941,6 @@ select {
   color: #f0f0f0;
 }
 
-:deep(.dark-mode) .send-button {
-  background-color: #4fd1a5;
-  box-shadow: 0 4px 10px rgba(79, 209, 165, 0.3);
-}
-
-:deep(.dark-mode) .send-button:hover:not(:disabled) {
-  background-color: #3cb28f;
-  box-shadow: 0 6px 15px rgba(79, 209, 165, 0.4);
-}
-
-:deep(.dark-mode) .send-button:active:not(:disabled) {
-  box-shadow: 0 2px 5px rgba(79, 209, 165, 0.3);
-}
-
-:deep(.dark-mode) .send-button:disabled {
-  background-color: #2a7d63;
-}
-
-:deep(.dark-mode) .payout-modal__transaction-summary-container {
-  background-color: #252525;
-  border-color: #333;
-}
-
-:deep(.dark-mode) .transaction-summary-title {
-  color: #f0f0f0;
-}
-
-:deep(.dark-mode) .transaction-summary-label {
-  color: #bbb;
-}
-
-:deep(.dark-mode) .transaction-summary-value {
-  color: #f0f0f0;
-}
-
 .network-indicator {
   padding: 6px 15px;
   background-color: #fff8e1;
@@ -1067,5 +1139,201 @@ select {
 
 :deep(.dark-mode) .clear-error-button:hover {
   background-color: rgba(255, 107, 107, 0.2);
+}
+
+/* Password Modal Styles */
+.password-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100; /* Higher than the main modal */
+  backdrop-filter: blur(4px);
+}
+
+.password-modal-content {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: modal-appear 0.3s ease-out;
+  overflow: hidden;
+}
+
+.password-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #fffaf0;
+}
+
+.password-modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #e03131;
+  font-weight: 600;
+}
+
+.password-modal-body {
+  padding: 20px;
+}
+
+.warning-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: rgba(224, 49, 49, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid #e03131;
+}
+
+.warning-icon {
+  color: #e03131;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.warning-message p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+.password-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancel-button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+  transition: all 0.2s;
+}
+
+.cancel-button:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.confirm-button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #e03131;
+  color: white;
+  border: none;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background-color: #c92a2a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(224, 49, 49, 0.3);
+}
+
+.confirm-button:disabled {
+  background-color: #f08c8c;
+  cursor: not-allowed;
+}
+
+/* Dark Mode Styles for Password Modal */
+:deep(.dark-mode) .password-modal-content {
+  background-color: #1e1e1e;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+:deep(.dark-mode) .password-modal-header {
+  background-color: #2b1a1a;
+  border-bottom-color: #333;
+}
+
+:deep(.dark-mode) .password-modal-header h3 {
+  color: #ff6b6b;
+}
+
+:deep(.dark-mode) .warning-message {
+  background-color: rgba(255, 107, 107, 0.1);
+  border-left-color: #ff6b6b;
+}
+
+:deep(.dark-mode) .warning-icon {
+  color: #ff6b6b;
+}
+
+:deep(.dark-mode) .warning-message p {
+  color: #e0e0e0;
+}
+
+:deep(.dark-mode) .cancel-button {
+  color: #bbb;
+  border-color: #444;
+}
+
+:deep(.dark-mode) .cancel-button:hover {
+  background-color: #252525;
+  color: #fff;
+}
+
+:deep(.dark-mode) .confirm-button {
+  background-color: #ff6b6b;
+}
+
+:deep(.dark-mode) .confirm-button:hover:not(:disabled) {
+  background-color: #ff5252;
+  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+}
+
+:deep(.dark-mode) .confirm-button:disabled {
+  background-color: #994040;
+}
+
+/* Add responsive styles for the password modal on smaller screens */
+@media (max-width: 480px) {
+  .password-modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .warning-message {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .warning-message p {
+    font-size: 0.85rem;
+  }
+
+  .password-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .cancel-button, .confirm-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
