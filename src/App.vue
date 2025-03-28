@@ -131,7 +131,7 @@ html, body {
   width: 100%;
   height: 100vh;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 *, *:before, *:after {
@@ -143,12 +143,11 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   width: 100%;
   position: relative;
-  overflow: hidden;
 }
 
 /* Dark mode styles */
@@ -336,7 +335,6 @@ nav a.router-link-exact-active {
   display: flex;
   flex: 1;
   width: 100%;
-  overflow: hidden;
 }
 
 main {
@@ -344,7 +342,6 @@ main {
   width: 100%;
   margin: 0 auto;
   padding: 20px;
-  overflow: auto;
 }
 
 main.full-width {
@@ -381,16 +378,20 @@ footer {
 
   #app {
     overflow: auto;
+    height: auto;
+    min-height: 100vh;
   }
 
   .content-wrapper {
     flex-direction: column;
-    overflow: auto;
+    overflow: visible;
+    height: auto;
   }
 
   main {
     max-width: 100%;
-    overflow: auto;
+    overflow: visible;
+    height: auto;
   }
 
   .logo-text {
