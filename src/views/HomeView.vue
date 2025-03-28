@@ -231,8 +231,6 @@ export default {
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
 }
 
 .portfolio-container {
@@ -460,10 +458,13 @@ h3 {
 @media (max-width: 900px) {
   .portfolio-container {
     flex-direction: column;
+    height: auto;
+    overflow-y: auto;
   }
 
   .summary-section, .skills-section {
     padding: 30px;
+    overflow-y: auto;
   }
 
   .skill-label {
@@ -472,6 +473,16 @@ h3 {
 }
 
 @media (max-width: 600px) {
+  .home {
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .portfolio-container {
+    height: auto;
+    min-height: 100%;
+  }
+
   .skill-item {
     flex-wrap: wrap;
   }
@@ -488,12 +499,11 @@ h3 {
   }
 
   .contact-section {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .contact-link {
-    text-align: center;
+    justify-content: center;
+    flex-direction: row;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    gap: 15px;
   }
 }
 
