@@ -229,9 +229,11 @@ export default {
       const propChain = this.chain ? this.chain.toLowerCase() : ''
       const chain = txChain || propChain || 'sepolia'
 
-      // Handle all BNB chain variations
+      // Handle all chain variations
       if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
         return `https://testnet.bscscan.com/tx/${this.transaction.transactionHash}`
+      } else if (chain === 'avaxfuji') {
+        return `https://testnet.snowtrace.io/tx/${this.transaction.transactionHash}`
       } else {
         // Default to Sepolia Etherscan
         return `https://sepolia.etherscan.io/tx/${this.transaction.transactionHash}`
@@ -245,9 +247,11 @@ export default {
       const propChain = this.chain ? this.chain.toLowerCase() : ''
       const chain = txChain || propChain || 'sepolia'
 
-      // Handle all BNB chain variations
+      // Handle all chain variations
       if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
         return 'View on BSC Scan'
+      } else if (chain === 'avaxfuji') {
+        return 'View on Snowtrace'
       } else {
         return 'View on Etherscan'
       }
@@ -260,9 +264,11 @@ export default {
       const propChain = this.chain ? this.chain.toLowerCase() : ''
       const chain = txChain || propChain || 'sepolia'
 
-      // Return "BNB" for BNB chain variations, "ETH" otherwise
+      // Return appropriate gas price currency based on chain
       if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
         return 'BNB'
+      } else if (chain === 'avaxfuji') {
+        return 'AVAX'
       } else {
         return 'ETH'
       }

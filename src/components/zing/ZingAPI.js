@@ -24,7 +24,12 @@ export async function fetchBalances (network, chain) {
 
   try {
     // For BNB chains, use 'bnbTestnet' as the chain parameter
-    const chainParam = chain === 'bnb' || chain === 'tbnb' ? 'bnbTestnet' : chain
+    // For AVAX Fuji, use 'avaxFuji' as is
+    let chainParam = chain
+    if (chain === 'bnb' || chain === 'tbnb') {
+      chainParam = 'bnbTestnet'
+    }
+    // AVAX Fuji is already in the correct format (avaxFuji)
 
     // Fetch USDC token balance with tokenType parameter
     const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdc`, {
@@ -98,13 +103,13 @@ export async function fetchTransactions (network, chain) {
     let url = `${API_BASE_URL}/zing/transactions`
 
     // If chain is provided, add it as a query parameter
-    // and handle BNB chains specially
     if (chain) {
       // Normalize chain value
       let chainValue = chain.toLowerCase()
       if (chainValue === 'bnb' || chainValue === 'tbnb') {
         chainValue = 'bnbTestnet'
       }
+      // AVAX Fuji is already in the correct format (avaxFuji)
       url += `?chain=${chainValue}`
     }
 
@@ -153,13 +158,13 @@ export async function fetchTransactionDetails (network, transactionHash, chain) 
     let url = `${API_BASE_URL}/zing/transactions/${transactionHash}`
 
     // If chain is provided, add it as a query parameter
-    // and handle BNB chains specially
     if (chain) {
       // Normalize chain value
       let chainValue = chain.toLowerCase()
       if (chainValue === 'bnb' || chainValue === 'tbnb') {
         chainValue = 'bnbTestnet'
       }
+      // AVAX Fuji is already in the correct format (avaxFuji)
       url += `?chain=${chainValue}`
     }
 
@@ -222,6 +227,7 @@ export async function submitPayout (payoutData) {
     if (chainValue === 'bnb' || chainValue === 'tbnb') {
       chainValue = 'bnbTestnet'
     }
+    // AVAX Fuji is already in the correct format (avaxFuji)
 
     const payload = {
       ...payoutData,

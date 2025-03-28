@@ -20,6 +20,7 @@
                 <option value="polygon">Polygon (MATIC)</option>
                 <option value="sepolia" v-if="network === 'testnet'">Sepolia (SEP)</option>
                 <option value="tbnb" v-if="network === 'testnet'">BNB Testnet (tBNB)</option>
+                <option value="avaxFuji" v-if="network === 'testnet'">AVAX Fuji (AVAX)</option>
                 <option value="eth" v-if="network === 'mainnet'">Ethereum (ETH)</option>
                 <option value="bnb" v-if="network === 'mainnet'">BNB Chain (BNB)</option>
               </select>
@@ -409,6 +410,8 @@ export default {
           return 'BNB Chain'
         case 'tbnb':
           return 'BNB Testnet'
+        case 'avaxfuji':
+          return 'AVAX Fuji'
         default:
           return this.formData.chain
       }
@@ -427,6 +430,8 @@ export default {
           return 'BNB'
         case 'tbnb':
           return 'tBNB'
+        case 'avaxfuji':
+          return 'AVAX'
         default:
           return 'ETH'
       }
