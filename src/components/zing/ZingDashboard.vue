@@ -185,6 +185,8 @@ export default {
           return 'tBNB'
         case 'avaxFuji':
           return 'AVAX'
+        case 'avax':
+          return 'AVAX'
         default:
           return 'ETH'
       }

@@ -35,6 +35,12 @@
              v-if="network === 'mainnet'">
           <span class="dot mainnet-dot"></span>BNB Chain
         </div>
+        <div class="dropdown-option"
+             :class="{ 'active': selectedChain === 'avax' }"
+             @click.stop="selectChain('avax')"
+             v-if="network === 'mainnet'">
+          <span class="dot mainnet-dot"></span>Avalanche
+        </div>
       </div>
     </div>
   </div>
@@ -47,7 +53,7 @@ export default {
     value: {
       type: String,
       default: 'sepolia',
-      validator: value => ['sepolia', 'eth', 'bnb', 'tbnb', 'avaxFuji'].includes(value)
+      validator: value => ['sepolia', 'eth', 'bnb', 'tbnb', 'avaxFuji', 'avax'].includes(value)
     },
     network: {
       type: String,
@@ -86,6 +92,8 @@ export default {
           return 'BNB Testnet'
         case 'avaxFuji':
           return 'AVAX Fuji'
+        case 'avax':
+          return 'Avalanche'
         default:
           return this.selectedChain
       }
@@ -102,7 +110,7 @@ export default {
           this.selectChain('sepolia')
         }
       } else if (newNetwork === 'mainnet') {
-        if (!['eth', 'bnb'].includes(this.selectedChain)) {
+        if (!['eth', 'bnb', 'avax'].includes(this.selectedChain)) {
           this.selectChain('eth')
         }
       }

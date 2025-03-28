@@ -35,6 +35,7 @@
                 <th>Date</th>
                 <th>Amount</th>
                 <th>Token Type</th>
+                <th>Chain</th>
                 <th>Destination</th>
                 <th>Status</th>
                 <th>Email</th>
@@ -58,6 +59,7 @@
                 <td class="date-cell">{{ formatDate(tx.timestamp) }}</td>
                 <td>{{ formatAmount(tx.amount) }}</td>
                 <td class="token-type">{{ tx.tokenType ? tx.tokenType.toUpperCase() : 'USDC' }}</td>
+                <td class="chain-cell">{{ formatChain(tx.chain) }}</td>
                 <td class="address">{{ truncateAddress(tx.destinationAddress) }}</td>
                 <td>
                   <span class="status-badge" :class="tx.status.toLowerCase()">
@@ -68,6 +70,50 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- Pagination controls -->
+          <div class="pagination-controls" v-if="totalPages > 1">
+            <div class="pagination-info">
+              Showing {{ ((currentPage - 1) * itemsPerPage) + 1 }} - {{ Math.min(currentPage * itemsPerPage, sortedTransactions.length) }} of {{ sortedTransactions.length }} transactions
+            </div>
+            <div class="pagination-buttons">
+              <button
+                class="pagination-button"
+                :disabled="currentPage === 1"
+                @click="goToPage(1)"
+                :class="{ 'disabled': currentPage === 1 }"
+              >
+                &laquo;
+              </button>
+              <button
+                class="pagination-button"
+                :disabled="currentPage === 1"
+                @click="goToPage(currentPage - 1)"
+                :class="{ 'disabled': currentPage === 1 }"
+              >
+                &lsaquo;
+              </button>
+
+              <span class="pagination-current">{{ currentPage }} / {{ totalPages }}</span>
+
+              <button
+                class="pagination-button"
+                :disabled="currentPage === totalPages"
+                @click="goToPage(currentPage + 1)"
+                :class="{ 'disabled': currentPage === totalPages }"
+              >
+                &rsaquo;
+              </button>
+              <button
+                class="pagination-button"
+                :disabled="currentPage === totalPages"
+                @click="goToPage(totalPages)"
+                :class="{ 'disabled': currentPage === totalPages }"
+              >
+                &raquo;
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -116,7 +162,9 @@ export default {
       forceMainnetEmptyState: false,
       showTransactionDetailModal: false,
       selectedTransactionHash: '',
-      selectedTransactionChain: ''
+      selectedTransactionChain: '',
+      currentPage: 1,
+      itemsPerPage: 10
     }
   },
   computed: {
@@ -141,11 +189,34 @@ export default {
       return this.effectiveNetwork === 'mainnet' || this.transactions.length === 0
     },
 
+    // Sort transactions by timestamp (latest first) and then paginate
+    sortedTransactions () {
+      if (this.effectiveNetwork === 'mainnet') {
+        return []
+      }
+
+      // Create a copy of the transactions array to avoid mutating the original
+      return [...this.transactions].sort((a, b) => {
+        const dateA = new Date(a.timestamp || 0)
+        const dateB = new Date(b.timestamp || 0)
+        return dateB - dateA // Sort descending (latest first)
+      })
+    },
+
+    // Get only the transactions for the current page
     filteredTransactions () {
       if (this.effectiveNetwork === 'mainnet') {
         return []
       }
-      return this.transactions
+
+      const startIndex = (this.currentPage - 1) * this.itemsPerPage
+      const endIndex = startIndex + this.itemsPerPage
+      return this.sortedTransactions.slice(startIndex, endIndex)
+    },
+
+    // Calculate total pages
+    totalPages () {
+      return Math.ceil(this.sortedTransactions.length / this.itemsPerPage)
     }
   },
   created () {
@@ -162,6 +233,8 @@ export default {
 
       this.transactions = []
       this.isLoading = true
+      this.currentPage = 1 // Reset to first page when loading new data
+
       try {
         // Get the currently selected chain from the dashboard if available
         const selectedChain = this.$root && this.$root.currentChain
@@ -185,6 +258,7 @@ export default {
         return
       }
 
+      this.currentPage = 1 // Reset to first page when refreshing
       this.loadTransactions()
     },
     truncateHash (hash) {
@@ -233,6 +307,30 @@ export default {
       this.showTransactionDetailModal = false
       this.selectedTransactionHash = ''
       this.selectedTransactionChain = ''
+    },
+    goToPage (page) {
+      this.currentPage = page
+    },
+    formatChain (chain) {
+      if (!chain) return 'N/A'
+
+      const chainLower = chain.toLowerCase()
+
+      // Map chain names to user-friendly display names
+      switch (chainLower) {
+        case 'sepolia':
+          return 'Sepolia'
+        case 'eth':
+          return 'Ethereum'
+        case 'bnb':
+        case 'bnbtestnet':
+        case 'tbnb':
+          return 'BNB Testnet'
+        case 'avaxfuji':
+          return 'AVAX Fuji'
+        default:
+          return chain
+      }
     }
   },
   watch: {
@@ -529,6 +627,13 @@ export default {
   min-width: 180px;
 }
 
+.chain-cell {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #42b983;
+}
+
 .copy-tooltip {
   position: relative;
   display: inline-block;
@@ -727,5 +832,78 @@ export default {
   .transactions-table {
     min-width: 650px;
   }
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.pagination-info {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.pagination-button {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px 10px;
+  margin: 0 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.pagination-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.pagination-button.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-current {
+  font-weight: 600;
+}
+
+.dark-mode .copy-button:hover {
+  background-color: rgba(79, 209, 165, 0.2);
+  color: #ffffff;
+}
+
+.dark-mode .pagination-info {
+  color: #bbb;
+}
+
+.dark-mode .pagination-button {
+  color: #bbb;
+}
+
+.dark-mode .pagination-button:hover {
+  background-color: rgba(79, 209, 165, 0.2);
+  color: #ffffff;
+}
+
+.dark-mode .pagination-button.disabled {
+  color: #666;
+  cursor: not-allowed;
+}
+
+.dark-mode .pagination-current {
+  color: #4fd1a5;
+}
+
+.dark-mode .chain-cell {
+  color: #4fd1a5;
+  font-weight: 600;
 }
 </style>
