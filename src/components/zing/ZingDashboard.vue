@@ -7,6 +7,9 @@
 
     <div class="main-content">
       <div class="project-header">
+        <button class="info-button" @click="showProjectInfoModal = true">
+          Tell Me About This Project
+        </button>
         <h1>Zing</h1>
         <p class="subtitle">A modern solution for cryptocurrency transactions</p>
         <zing-network-selector
@@ -77,6 +80,12 @@
       :network="network"
       @close="closeTransactionDetailModal"
     />
+
+    <!-- Project Info Modal -->
+    <zing-project-info-modal
+      :show="showProjectInfoModal"
+      @close="showProjectInfoModal = false"
+    />
   </div>
 </template>
 
@@ -87,6 +96,7 @@ import ZingChainSelector from './ZingChainSelector.vue'
 import ZingBalanceCard from './ZingBalanceCard.vue'
 import ZingTransactionsModal from './ZingTransactionsModal.vue'
 import ZingTransactionDetailModal from './ZingTransactionDetailModal.vue'
+import ZingProjectInfoModal from './ZingProjectInfoModal.vue'
 import { fetchBalances } from './ZingAPI'
 
 export default {
@@ -97,7 +107,8 @@ export default {
     ZingChainSelector,
     ZingBalanceCard,
     ZingTransactionsModal,
-    ZingTransactionDetailModal
+    ZingTransactionDetailModal,
+    ZingProjectInfoModal
   },
   inject: ['openPayoutModal'],
   data () {
@@ -112,6 +123,7 @@ export default {
       isLoading: false,
       showTransactionsModal: false,
       showTransactionDetailModal: false,
+      showProjectInfoModal: false,
       selectedTransactionHash: '',
       networkDropdownOpen: false,
       chainDropdownOpen: false
@@ -234,6 +246,44 @@ export default {
   margin-bottom: 30px;
   width: 100%;
   position: relative;
+}
+
+.info-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, #42b983 0%, #3aa876 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.25);
+  display: flex;
+  align-items: center;
+  z-index: 5;
+}
+
+.info-button::before {
+  content: "ⓘ";
+  margin-right: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.info-button:hover {
+  background: linear-gradient(135deg, #3aa876 0%, #42b983 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(66, 185, 131, 0.35);
+}
+
+.info-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(66, 185, 131, 0.25);
 }
 
 h1 {
@@ -364,6 +414,14 @@ h1 {
     grid-template-columns: 1fr;
     max-width: 280px;
   }
+
+  .info-button {
+    position: static;
+    margin: 15px auto 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 }
 
 /* Dark Mode Styles */
@@ -424,5 +482,21 @@ h1 {
     transform: scale(1.05);
     filter: drop-shadow(0 0 10px rgba(79, 209, 165, 0.7));
   }
+}
+
+:deep(.dark-mode) .info-button {
+  background: linear-gradient(135deg, #4fd1a5 0%, #3cb28f 100%);
+  color: #121212;
+  box-shadow: 0 4px 12px rgba(79, 209, 165, 0.25);
+  font-weight: 700;
+}
+
+:deep(.dark-mode) .info-button:hover {
+  background: linear-gradient(135deg, #3cb28f 0%, #4fd1a5 100%);
+  box-shadow: 0 8px 16px rgba(79, 209, 165, 0.35);
+}
+
+:deep(.dark-mode) .info-button:active {
+  box-shadow: 0 4px 8px rgba(79, 209, 165, 0.25);
 }
 </style>
