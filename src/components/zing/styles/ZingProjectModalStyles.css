@@ -1,0 +1,286 @@
+/* ZingProjectInfoModal Specific Styles */
+
+/* These styles override the general modal styles for the ZingProjectInfoModal component only */
+.zing-project-modal.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    perspective: 1000px;
+    overflow: hidden;
+}
+
+.zing-project-modal .modal-content {
+    background-color: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.zing-project-modal .modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.zing-project-modal .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.zing-project-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #2c3e50;
+}
+
+.zing-project-modal .tech-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(66, 185, 131, 0.1);
+    color: #42b983;
+    transition: all 0.2s ease;
+    cursor: help;
+    padding: 3px;
+}
+
+.zing-project-modal .tech-icon:hover {
+    background-color: rgba(66, 185, 131, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 5px rgba(66, 185, 131, 0.15);
+}
+
+.zing-project-modal .solidity-icon {
+    background-color: rgba(108, 108, 108, 0.1);
+}
+
+.zing-project-modal .solidity-icon:hover {
+    background-color: rgba(108, 108, 108, 0.2);
+    box-shadow: 0 3px 5px rgba(108, 108, 108, 0.15);
+}
+
+.zing-project-modal .close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.zing-project-modal .close-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+.zing-project-modal .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    overscroll-behavior: contain;
+}
+
+.zing-project-modal .typewriter-container {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border-left: 4px solid #42b983;
+    min-height: 200px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.zing-project-modal .typewriter-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #333;
+    margin: 0;
+    text-align: left;
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.zing-project-modal .typewriter-text div {
+    display: inline;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.zing-project-modal .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background-color: #333;
+    vertical-align: text-bottom;
+    position: relative;
+    top: 4px;
+    margin-left: 1px;
+    animation: blink 1s step-end infinite;
+}
+
+.zing-project-modal .cursor.typing {
+    animation: none;
+    opacity: 1;
+}
+
+@keyframes blink {
+
+    from,
+    to {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.zing-project-modal .modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.zing-project-modal .modal-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    background-color: #42b983;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.zing-project-modal .modal-button:hover {
+    background-color: #3aa876;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 5px rgba(66, 185, 131, 0.3);
+}
+
+.zing-project-modal .modal-button.reset {
+    background-color: transparent;
+    color: #42b983;
+    border: 1px solid #42b983;
+}
+
+.zing-project-modal .modal-button.reset:hover {
+    background-color: rgba(66, 185, 131, 0.1);
+}
+
+/* Dark Mode Styles */
+.dark-mode .zing-project-modal .modal-content {
+    background-color: #252525;
+}
+
+.dark-mode .zing-project-modal .modal-header {
+    border-bottom-color: #333;
+}
+
+.dark-mode .zing-project-modal .modal-header h2 {
+    color: #fff;
+}
+
+.dark-mode .zing-project-modal .close-button {
+    color: #aaa;
+}
+
+.dark-mode .zing-project-modal .close-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.dark-mode .zing-project-modal .typewriter-container {
+    background-color: #1e1e1e;
+    border-left-color: #4fd1a5;
+}
+
+.dark-mode .zing-project-modal .typewriter-text,
+.dark-mode .zing-project-modal .typewriter-text div {
+    color: #e0e0e0;
+}
+
+.dark-mode .zing-project-modal .cursor {
+    background-color: #e0e0e0;
+}
+
+.dark-mode .zing-project-modal .modal-footer {
+    border-top-color: #333;
+}
+
+.dark-mode .zing-project-modal .modal-button {
+    background-color: #4fd1a5;
+    color: #121212;
+}
+
+.dark-mode .zing-project-modal .modal-button:hover {
+    background-color: #3cb28f;
+}
+
+.dark-mode .zing-project-modal .modal-button.reset {
+    background-color: transparent;
+    color: #4fd1a5;
+    border-color: #4fd1a5;
+}
+
+.dark-mode .zing-project-modal .modal-button.reset:hover {
+    background-color: rgba(79, 209, 165, 0.1);
+    color: #fff;
+}
+
+.dark-mode .zing-project-modal .tech-icon {
+    background-color: rgba(79, 209, 165, 0.15);
+    color: #4fd1a5;
+}
+
+.dark-mode .zing-project-modal .tech-icon:hover {
+    background-color: rgba(79, 209, 165, 0.25);
+}
+
+.dark-mode .zing-project-modal .solidity-icon {
+    background-color: rgba(130, 130, 130, 0.15);
+}
+
+.dark-mode .zing-project-modal .solidity-icon:hover {
+    background-color: rgba(130, 130, 130, 0.25);
+    box-shadow: 0 3px 5px rgba(130, 130, 130, 0.2);
+}
+
+.dark-mode .zing-project-modal .solidity-icon polygon {
+    filter: brightness(1.2);
+}

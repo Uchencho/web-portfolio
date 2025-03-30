@@ -1,6 +1,6 @@
 <!-- Transaction Detail Modal -->
 <template>
-  <div class="transaction-detail-modal" v-show="show">
+  <div class="transaction-detail-modal zing-transaction-detail-modal" v-show="show">
     <div class="modal-backdrop" @click="$emit('close')"></div>
     <div class="modal-content">
       <div class="modal-header">
@@ -120,6 +120,8 @@
 
 <script>
 import { fetchTransactionDetails } from './ZingAPI'
+import './styles/ZingModalStyles.css' // Import shared modal styles
+import './styles/ZingTransactionsModalStyles.css' // Import transaction-specific styles
 
 export default {
   name: 'ZingTransactionDetailModal',

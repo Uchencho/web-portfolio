@@ -1,6 +1,6 @@
 <template>
   <transition name="modal-fade">
-    <div v-if="show" class="modal-backdrop">
+    <div v-if="show" class="modal-backdrop zing-project-modal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h2>About Zing Project</h2>
@@ -49,6 +49,8 @@
 </template>
 
 <script>
+import './styles/ZingProjectModalStyles.css' // Import specific project modal styles
+
 export default {
   name: 'ZingProjectInfoModal',
   props: {
