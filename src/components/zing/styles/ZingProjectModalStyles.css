@@ -264,21 +264,36 @@
 }
 
 .dark-mode .zing-project-modal .tech-icon {
-    background-color: rgba(79, 209, 165, 0.15);
-    color: #4fd1a5;
+    background-color: #ffffff !important;
+        color: #42b983 !important;
+        border: 2px solid rgba(79, 209, 165, 0.5) !important;
+        overflow: visible !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 .dark-mode .zing-project-modal .tech-icon:hover {
-    background-color: rgba(79, 209, 165, 0.25);
+    background-color: #ffffff !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(79, 209, 165, 0.4) !important;
 }
 
 .dark-mode .zing-project-modal .solidity-icon {
-    background-color: rgba(130, 130, 130, 0.15);
+    background-color: #ffffff !important;
+        color: #333 !important;
+        border: 2px solid rgba(130, 130, 130, 0.5) !important;
 }
 
 .dark-mode .zing-project-modal .solidity-icon:hover {
-    background-color: rgba(130, 130, 130, 0.25);
-    box-shadow: 0 3px 5px rgba(130, 130, 130, 0.2);
+    background-color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(130, 130, 130, 0.4) !important;
+    }
+    
+    /* Target the SVG elements directly */
+    .dark-mode .zing-project-modal .tech-icon svg,
+    .dark-mode .zing-project-modal .solidity-icon svg {
+        background-color: #ffffff !important;
+        border-radius: 50% !important;
+        padding: 2px !important;
 }
 
 .dark-mode .zing-project-modal .solidity-icon polygon {

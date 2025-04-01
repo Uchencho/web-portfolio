@@ -91,11 +91,14 @@ export default {
         // Access the ZingDashboard component via refs if possible
         // Otherwise find another way to trigger the transactions modal
         if (this.$route.matched.length > 0 && this.$route.matched[0].instances.default) {
-          const dashboard = this.$route.matched[0].instances.default.$children.find(
-            child => child.$options.name === 'ZingDashboard'
-          )
-          if (dashboard) {
-            dashboard.openTransactionsModal()
+          const instance = this.$route.matched[0].instances.default
+          if (instance.$children && instance.$children.length > 0) {
+            const dashboard = instance.$children.find(
+              child => child.$options.name === 'ZingDashboard'
+            )
+            if (dashboard) {
+              dashboard.openTransactionsModal()
+            }
           }
         }
       } else {

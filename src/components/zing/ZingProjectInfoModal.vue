@@ -6,7 +6,7 @@
           <h2>About Zing Project</h2>
           <div class="header-actions">
             <div class="tech-icon solidity-icon" title="Solidity">
-              <svg viewBox="0 0 100 100" width="30" height="30">
+              <svg viewBox="0 0 100 100" width="30" height="30" style="background-color: white; border-radius: 50%; padding: 3px;">
                 <!-- Upper section -->
                 <polygon fill="#2D2D2D" points="50,0 20,50 50,40 80,50" />
                 <polygon fill="#4D4D4D" points="50,0 80,50 50,40" />
@@ -18,7 +18,7 @@
               </svg>
             </div>
             <div class="tech-icon" title="Golang">
-              <svg viewBox="0 0 300 300" width="30" height="30">
+              <svg viewBox="0 0 300 300" width="30" height="30" style="background-color: white; border-radius: 50%; padding: 3px;">
                 <g transform="translate(0,10)">
                   <path fill="currentColor" d="M40.2,101.1c-0.4,0-0.5-0.2-0.3-0.5l2.1-2.7c0.2-0.3,0.7-0.5,1.1-0.5h35.7c0.4,0,0.5,0.3,0.3,0.6l-1.7,2.6 c-0.2,0.3-0.7,0.6-1,0.6L40.2,101.1z"/>
                   <path fill="currentColor" d="M25.1,110.3c-0.4,0-0.5-0.2-0.3-0.5l2.1-2.7c0.2-0.3,0.7-0.5,1.1-0.5h45.6c0.4,0,0.6,0.3,0.5,0.6l-0.8,2.4 c-0.1,0.4-0.5,0.6-0.9,0.6L25.1,110.3z"/>
@@ -427,24 +427,47 @@ export default {
 }
 
 :deep(.dark-mode) .tech-icon {
-  background-color: rgba(79, 209, 165, 0.15);
-  color: #4fd1a5;
+  background-color: #ffffff !important;
+  color: #42b983 !important;
+  border: 2px solid rgba(79, 209, 165, 0.5) !important;
 }
 
-:deep(.dark-mode) .tech-icon:hover {
-  background-color: rgba(79, 209, 165, 0.25);
+:deep(.dark-mode) .tech-icon svg {
+  background-color: #ffffff !important;
+  border-radius: 50% !important;
 }
 
 :deep(.dark-mode) .solidity-icon {
-  background-color: rgba(130, 130, 130, 0.15);
+  background-color: #ffffff !important;
 }
 
-:deep(.dark-mode) .solidity-icon:hover {
-  background-color: rgba(130, 130, 130, 0.25);
-  box-shadow: 0 3px 5px rgba(130, 130, 130, 0.2);
+:deep(.dark-mode) .solidity-icon svg polygon {
+  background-color: transparent !important;
 }
 
-:deep(.dark-mode) .solidity-icon polygon {
-  filter: brightness(1.2);
+/* Mobile responsive styles */
+@media (max-width: 480px) {
+  .password-modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .warning-message {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .warning-message p {
+    font-size: 0.85rem;
+  }
+
+  .password-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .cancel-button, .confirm-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
