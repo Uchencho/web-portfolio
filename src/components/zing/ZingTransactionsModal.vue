@@ -1,5 +1,5 @@
 <template>
-  <div class="transactions-modal" v-show="show">
+  <div class="transactions-modal zing-transactions-modal" v-show="show">
     <div class="modal-backdrop" @click="$emit('close')"></div>
     <div class="modal-content">
       <div class="modal-header">
@@ -137,6 +137,8 @@
 <script>
 import { fetchTransactions } from './ZingAPI'
 import ZingTransactionDetailModal from './ZingTransactionDetailModal.vue'
+import './styles/ZingModalStyles.css'
+import './styles/ZingTransactionsModalStyles.css'
 
 export default {
   name: 'ZingTransactionsModal',
@@ -373,30 +375,28 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-family: inherit;
+  align-items: center;
 }
 
 .modal-backdrop {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
+  z-index: -1;
 }
 
 .modal-content {
-  position: relative;
   background-color: white;
-  width: 90%;
-  max-width: 1000px;
+  width: 85%;
+  max-width: 1200px;
   max-height: 85vh;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
@@ -692,7 +692,7 @@ export default {
   opacity: 1;
 }
 
-/* Dark Mode Styles */
+/* Dark Mode Styles for modal elements only */
 .dark-mode .modal-content {
   background-color: #1e1e1e;
   border-color: #333;
@@ -761,76 +761,10 @@ export default {
   color: #aaa;
 }
 
-.dark-mode .transactions-table th {
-  color: #e0e0e0;
-  background-color: rgba(255, 255, 255, 0.05);
-  font-weight: 600;
-}
-
-.dark-mode .transactions-table td {
-  border-bottom-color: #333;
-  color: #e0e0e0;
-}
-
-.dark-mode .tx-id,
-.dark-mode .address {
-  color: #4fd1a5;
-}
-
-.dark-mode .transactions-table thead tr:hover {
-  background-color: transparent;
-  transform: none;
-  box-shadow: none;
-}
-
-.dark-mode .transactions-table tbody tr:hover {
-  background-color: rgba(79, 209, 165, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(79, 209, 165, 0.15);
-  color: inherit;
-}
-
-.dark-mode .status-badge.success {
-  background-color: rgba(79, 209, 165, 0.2);
-  color: #4fd1a5;
-  font-weight: 700;
-}
-
-.dark-mode .status-badge.pending {
-  background-color: rgba(245, 159, 0, 0.2);
-  color: #f59f00;
-  font-weight: 700;
-}
-
-.dark-mode .status-badge.failed {
-  background-color: rgba(224, 49, 49, 0.2);
-  color: #ff6b6b;
-  font-weight: 700;
-}
-
-.dark-mode .copy-button {
-  color: #4fd1a5;
-}
-
-.dark-mode .copy-button:hover {
-  background-color: rgba(79, 209, 165, 0.2);
-  color: #ffffff;
-}
-
 @media (max-width: 767px) {
-  .transactions-table th,
-  .transactions-table td {
-    padding: 8px 10px;
-    font-size: 0.85rem;
-  }
-
   .modal-content {
     width: 95%;
     max-height: 90vh;
-  }
-
-  .transactions-table {
-    min-width: 650px;
   }
 }
 

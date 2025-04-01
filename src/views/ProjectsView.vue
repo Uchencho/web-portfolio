@@ -16,10 +16,13 @@
             across different blockchain networks.
           </p>
           <div class="tech-stack">
-            <span class="tech-tag">Vue.js</span>
-            <span class="tech-tag">JavaScript</span>
-            <span class="tech-tag">Blockchain</span>
-            <span class="tech-tag">Responsive Design</span>
+            <span class="tech-tag">Go</span>
+            <span class="tech-tag">AWS Lambda</span>
+            <span class="tech-tag">AWS Gateway</span>
+            <span class="tech-tag">AWS Dynamo</span>
+            <span class="tech-tag">AWS Cloudformation</span>
+            <span class="tech-tag">Solidity</span>
+            <span class="tech-tag">Vue JS</span>
           </div>
           <div class="view-more">
             <span>View Project</span>
