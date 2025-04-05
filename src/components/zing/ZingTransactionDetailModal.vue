@@ -243,7 +243,12 @@ export default {
           }, 2000)
         })
         .catch(err => {
-          // Error handling without console.error
+          // Use the err parameter to satisfy lint rule
+          const errorMsg = err.message || 'Failed to copy'
+          this.clipboardMessage = errorMsg
+          setTimeout(() => {
+            this.clipboardMessage = ''
+          }, 2000)
         })
     },
     getChain () {
