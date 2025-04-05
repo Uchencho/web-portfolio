@@ -301,15 +301,7 @@ export default {
 
       // Only log in development to avoid console spam in production
       if (process.env.NODE_ENV === 'development') {
-        console.log('Form validation status:', {
-          chain: Boolean(this.formData.chain),
-          address: Boolean(this.formData.address),
-          amount: Boolean(this.formData.amount),
-          addressError: Boolean(this.addressError),
-          amountError: Boolean(this.amountError),
-          emailError: Boolean(this.emailError),
-          isValid: valid
-        })
+        // Debug logs removed
       }
 
       return valid
@@ -455,9 +447,6 @@ export default {
       // Reset any previous API errors
       this.apiError = ''
 
-      // Log the submission data
-      console.log('Submitting payout with password confirmation:', this.formData)
-
       // Ensure the correct chain parameter is used based on the network
       let chainValue = this.formData.chain
 
@@ -514,17 +503,11 @@ export default {
         // NOTE: This must be lowercase 'x-password' NOT 'X-Password'
         const headerName = 'x-password' // Explicitly define as lowercase
         headers[headerName] = password
-
-        // Add debug logs
-        console.log(`Using password header: "${headerName}" with value length: ${password.length}`)
-        console.log('Full headers object:', JSON.stringify(headers))
       }
 
       // Use the ZingAPI submitPayout function with custom headers
       submitPayout(payload, headers)
         .then(data => {
-          console.log('Payout successful:', data)
-
           // Close both modals
           this.showPasswordModal = false
           this.resetForm()
@@ -534,7 +517,6 @@ export default {
           this.$emit('show-transactions')
         })
         .catch(error => {
-          console.error('Error submitting payout:', error)
           // Set error message for display in UI
           this.apiError = error.message || 'Failed to submit payout. Please try again.'
 
@@ -562,12 +544,6 @@ export default {
       if (this.network !== 'mainnet') {
         // Reset any previous API errors
         this.apiError = ''
-
-        // Log the submission data
-        console.log('Submitting testnet payout:', this.formData)
-
-        // Set loading state
-        this.isSubmitting = true
 
         // Ensure the correct chain parameter is used based on the network
         let chainValue = this.formData.chain
@@ -613,8 +589,6 @@ export default {
         // Use the ZingAPI submitPayout function with custom headers
         submitPayout(payload, headers)
           .then(data => {
-            console.log('Payout successful:', data)
-
             // Close the modal
             this.resetForm()
             this.closeModal()
@@ -623,7 +597,6 @@ export default {
             this.$emit('show-transactions')
           })
           .catch(error => {
-            console.error('Error submitting payout:', error)
             // Set error message for display in UI
             this.apiError = error.message || 'Failed to submit payout. Please try again.'
           })

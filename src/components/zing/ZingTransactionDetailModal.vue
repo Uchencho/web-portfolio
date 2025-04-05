@@ -171,7 +171,6 @@ export default {
     async fetchTransactionDetail () {
       // Use the transactionHash from props instead of transaction.id
       if (!this.transactionHash) {
-        console.error('No transaction hash provided')
         this.error = 'No transaction hash provided'
         return
       }
@@ -204,17 +203,13 @@ export default {
         }
       }
 
-      console.log(`Fetching transaction details: network=${this.network}, hash=${this.transactionHash}, chain=${apiChain}`)
-
       // Call the API with the transaction hash from props
       fetchTransactionDetails(this.network, this.transactionHash, apiChain)
         .then(data => {
-          console.log('Transaction details received:', data)
           this.transaction = data
           this.isLoading = false
         })
         .catch(error => {
-          console.error('Error fetching transaction details:', error)
           this.error = error.message || 'Failed to fetch transaction details'
           this.isLoading = false
         })
@@ -248,7 +243,7 @@ export default {
           }, 2000)
         })
         .catch(err => {
-          console.error('Failed to copy: ', err)
+          // Error handling without console.error
         })
     },
     getChain () {

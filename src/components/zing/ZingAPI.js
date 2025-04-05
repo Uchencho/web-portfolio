@@ -67,9 +67,9 @@ export async function fetchBalances (network, chain) {
   } catch (error) {
     // Handle potential CORS errors
     if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
-      console.error('CORS Error when fetching balances:', error)
+      // CORS Error log removed
     } else {
-      console.error('Error fetching balances:', error)
+      // Error log removed
     }
   }
 
@@ -114,9 +114,9 @@ export async function fetchTransactions (network, chain) {
   } catch (error) {
     // Handle potential CORS errors
     if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
-      console.error('CORS Error when fetching transactions:', error)
+      // CORS Error log removed
     } else {
-      console.error('Error fetching transactions:', error)
+      // Error log removed
     }
   }
 
@@ -168,18 +168,18 @@ export async function fetchTransactionDetails (network, transactionHash, chain) 
       }
 
       const error = new Error(errorMessage)
-      console.error(error)
+      // Error log removed
       return Promise.reject(error)
     }
     return await response.json()
   } catch (error) {
     // Handle specific CORS errors
     if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
-      console.error('CORS Error when fetching transaction details:', error)
+      // CORS Error log removed
       return Promise.reject(new Error('Network request failed. This may be due to CORS restrictions. Please try again later.'))
     }
 
-    console.error('Error fetching transaction details:', error)
+    // Error log removed
     return Promise.reject(error)
   }
 }
@@ -212,9 +212,6 @@ export async function submitPayout (payoutData, customHeaders = {}) {
       ...customHeaders
     }
 
-    // Log headers to help debug
-    console.log('Submitting payout with headers:', JSON.stringify(headers))
-
     const response = await fetch(`${API_BASE_URL}/zing/payout`, {
       method: 'POST',
       headers,
@@ -243,11 +240,11 @@ export async function submitPayout (payoutData, customHeaders = {}) {
   } catch (error) {
     // Handle specific CORS errors
     if (error.message.includes('NetworkError') || error.message.includes('CORS')) {
-      console.error('CORS Error:', error)
+      // CORS Error log removed
       throw new Error('Network request failed. This may be due to CORS restrictions. Please try again later.')
     }
 
-    console.error('Error submitting payout:', error)
+    // Error log removed
     throw error
   }
 }

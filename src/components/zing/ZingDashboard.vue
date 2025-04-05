@@ -205,7 +205,7 @@ export default {
         const result = await fetchBalances(this.network, chainForBalance)
         this.balances = result
       } catch (error) {
-        console.error('Error loading balances:', error)
+        // Error handling without logging
       } finally {
         this.isLoading = false
       }

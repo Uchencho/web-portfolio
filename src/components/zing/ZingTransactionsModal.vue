@@ -253,7 +253,7 @@ export default {
         const data = await fetchTransactions(this.effectiveNetwork, selectedChain)
         this.transactions = data
       } catch (error) {
-        console.error('Error loading transactions:', error)
+        // Error handling without logging
         this.transactions = []
       } finally {
         this.isLoading = false
@@ -297,7 +297,7 @@ export default {
           }, 2000)
         })
         .catch(err => {
-          console.error('Failed to copy: ', err)
+          // Error handling without logging
         })
     },
     openTransactionDetails (transaction) {
