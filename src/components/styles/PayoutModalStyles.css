@@ -382,26 +382,37 @@
 .dark-mode .payout-modal .send-button,
 .dark-mode[data-theme="dark"] .payout-modal .send-button,
 .dark-mode .payout-modal-container .send-button {
-    background-color: #9bdfc3 !important;
+    background-color: #42b983 !important;
     color: white !important;
-    box-shadow: none !important;
+    box-shadow: 0 4px 10px rgba(66, 185, 131, 0.3) !important;
     font-weight: 600 !important;
     border-radius: 8px !important;
 }
 
+.dark-mode .payout-modal .send-button:not(:disabled),
+.dark-mode[data-theme="dark"] .payout-modal .send-button:not(:disabled),
+.dark-mode .payout-modal-container .send-button:not(:disabled) {
+    background-color: #42b983 !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+}
 .dark-mode .payout-modal .send-button:hover:not(:disabled),
 .dark-mode[data-theme="dark"] .payout-modal .send-button:hover:not(:disabled),
 .dark-mode .payout-modal-container .send-button:hover:not(:disabled) {
-    background-color: #8cceaf !important;
-    box-shadow: 0 4px 8px rgba(66, 185, 131, 0.2) !important;
-    transform: translateY(-1px) !important;
+    background-color: #3aa876 !important;
+        box-shadow: 0 6px 15px rgba(66, 185, 131, 0.4) !important;
+        transform: translateY(-2px) !important;
 }
 
 .dark-mode .payout-modal .send-button:disabled,
 .dark-mode[data-theme="dark"] .payout-modal .send-button:disabled,
 .dark-mode .payout-modal-container .send-button:disabled {
-    background-color: #c8e6d9 !important;
+    background-color: #a8d5c2 !important;
     color: #808080 !important;
+    opacity: 0.7 !important;
+        cursor: not-allowed !important;
+        box-shadow: none !important;
+        transform: none !important;
 }
 
 .dark-mode .payout-modal .network-indicator,

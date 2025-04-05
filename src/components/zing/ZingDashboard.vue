@@ -172,12 +172,40 @@ export default {
       this.showTransactionDetailModal = true
     },
     async loadBalances () {
-      this.isLoading = true
       try {
-        const result = await fetchBalances(this.network, this.selectedChain)
+        this.isLoading = true
+
+        // Ensure the correct chain parameter is used based on the network
+        let chainForBalance = this.selectedChain
+
+        // Convert to lowercase for case-insensitive comparison
+        const chainLower = chainForBalance.toLowerCase()
+
+        // If we're on mainnet, make sure we're using the correct chain values
+        if (this.network === 'mainnet') {
+          // For mainnet: 'eth', 'bnb', 'avax'
+          if (chainLower === 'sepolia') {
+            chainForBalance = 'eth'
+          } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
+            chainForBalance = 'bnb'
+          } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
+            chainForBalance = 'avax'
+          }
+        } else {
+          // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
+          if (chainLower === 'eth') {
+            chainForBalance = 'sepolia'
+          } else if (chainLower === 'bnb') {
+            chainForBalance = 'bnbTestnet'
+          } else if (chainLower === 'avax') {
+            chainForBalance = 'avaxFuji'
+          }
+        }
+
+        const result = await fetchBalances(this.network, chainForBalance)
         this.balances = result
       } catch (error) {
-        console.error('Error loading balances:', error)
+        // Error handling without logging
       } finally {
         this.isLoading = false
       }
@@ -186,18 +214,23 @@ export default {
       this.showTransactionsModal = true
     },
     getNativeTokenSymbol () {
-      switch (this.selectedChain) {
-        case 'sepolia':
-          return 'SEP'
+      if (!this.selectedChain) {
+        return 'ETH'
+      }
+
+      // Convert to lowercase for case-insensitive comparison
+      const chainLower = this.selectedChain.toLowerCase()
+
+      switch (chainLower) {
         case 'eth':
+        case 'sepolia':
           return 'ETH'
         case 'bnb':
-          return 'BNB'
+        case 'bnbtestnet':
         case 'tbnb':
-          return 'tBNB'
-        case 'avaxFuji':
-          return 'AVAX'
+          return 'BNB'
         case 'avax':
+        case 'avaxfuji':
           return 'AVAX'
         default:
           return 'ETH'

@@ -8,26 +8,26 @@
       </div>
 
       <div class="modal-body">
-        <div v-if="isLoading && effectiveNetwork !== 'mainnet'" class="loading-indicator">
+        <div v-if="isLoading" class="loading-indicator">
           <div class="spinner"></div>
           <p>Loading transactions...</p>
         </div>
 
-        <div v-else-if="effectiveNetwork === 'mainnet' || showEmptyState" class="empty-state">
+        <div v-else-if="transactions.length === 0" class="empty-state">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="empty-icon">
             <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm0 4c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5 2.24-5 5-5zm0 0c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z" fill="currentColor"/>
           </svg>
-          <p v-if="effectiveNetwork === 'mainnet'">No transactions available on Mainnet.</p>
+          <p v-if="effectiveNetwork === 'mainnet'">No transactions found on Mainnet.</p>
           <p v-else>No transactions found.</p>
           <p v-if="effectiveNetwork === 'mainnet'" class="hint">
-            Mainnet contract has not been deployed yet. Please use Testnet for now.
+            Try creating a transaction on the Mainnet network first.
           </p>
-          <p v-else-if="transactions.length === 0" class="hint">
+          <p v-else class="hint">
             No transactions have been made yet.
           </p>
         </div>
 
-        <div v-else-if="!forceMainnetEmptyState && effectiveNetwork !== 'mainnet' && filteredTransactions.length > 0" class="transactions-table-container">
+        <div v-else-if="filteredTransactions.length > 0" class="transactions-table-container">
           <table class="transactions-table">
             <thead>
               <tr>
@@ -119,7 +119,7 @@
 
       <div class="modal-footer">
         <button class="modal-button secondary" @click="$emit('close')">Close</button>
-        <button v-if="effectiveNetwork !== 'mainnet'" class="modal-button primary" @click="refreshTransactions">Refresh</button>
+        <button class="modal-button primary" @click="refreshTransactions">Refresh</button>
       </div>
     </div>
 
@@ -161,7 +161,6 @@ export default {
       transactions: [],
       isLoading: false,
       clipboardMessage: '',
-      forceMainnetEmptyState: false,
       showTransactionDetailModal: false,
       selectedTransactionHash: '',
       selectedTransactionChain: '',
@@ -187,16 +186,8 @@ export default {
       return this.network
     },
 
-    showEmptyState () {
-      return this.effectiveNetwork === 'mainnet' || this.transactions.length === 0
-    },
-
     // Sort transactions by timestamp (latest first) and then paginate
     sortedTransactions () {
-      if (this.effectiveNetwork === 'mainnet') {
-        return []
-      }
-
       // Create a copy of the transactions array to avoid mutating the original
       return [...this.transactions].sort((a, b) => {
         const dateA = new Date(a.timestamp || 0)
@@ -207,10 +198,6 @@ export default {
 
     // Get only the transactions for the current page
     filteredTransactions () {
-      if (this.effectiveNetwork === 'mainnet') {
-        return []
-      }
-
       const startIndex = (this.currentPage - 1) * this.itemsPerPage
       const endIndex = startIndex + this.itemsPerPage
       return this.sortedTransactions.slice(startIndex, endIndex)
@@ -226,40 +213,53 @@ export default {
   },
   methods: {
     async loadTransactions () {
-      // For mainnet, never load transactions
-      if (this.effectiveNetwork === 'mainnet') {
-        this.transactions = []
-        this.isLoading = false
-        return
-      }
-
       this.transactions = []
       this.isLoading = true
       this.currentPage = 1 // Reset to first page when loading new data
 
       try {
         // Get the currently selected chain from the dashboard if available
-        const selectedChain = this.$root && this.$root.currentChain
+        let selectedChain = this.$root && this.$root.currentChain
           ? this.$root.currentChain
           : null
+
+        // Ensure the correct chain parameter is used based on the network
+        if (selectedChain) {
+          // Convert to lowercase for case-insensitive comparison
+          const chainLower = selectedChain.toLowerCase()
+
+          // If we're on mainnet, make sure we're using the correct chain values
+          if (this.effectiveNetwork === 'mainnet') {
+            // For mainnet: 'eth', 'bnb', 'avax'
+            if (chainLower === 'sepolia') {
+              selectedChain = 'eth'
+            } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
+              selectedChain = 'bnb'
+            } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
+              selectedChain = 'avax'
+            }
+          } else {
+            // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
+            if (chainLower === 'eth') {
+              selectedChain = 'sepolia'
+            } else if (chainLower === 'bnb') {
+              selectedChain = 'bnbTestnet'
+            } else if (chainLower === 'avax') {
+              selectedChain = 'avaxFuji'
+            }
+          }
+        }
 
         const data = await fetchTransactions(this.effectiveNetwork, selectedChain)
         this.transactions = data
       } catch (error) {
-        console.error('Error loading transactions:', error)
+        // Error handling without logging
         this.transactions = []
       } finally {
         this.isLoading = false
       }
     },
     refreshTransactions () {
-      // Check if we're on mainnet and prevent loading
-      if (this.effectiveNetwork === 'mainnet') {
-        this.transactions = []
-        this.isLoading = false
-        return
-      }
-
       this.currentPage = 1 // Reset to first page when refreshing
       this.loadTransactions()
     },
@@ -297,7 +297,7 @@ export default {
           }, 2000)
         })
         .catch(err => {
-          console.error('Failed to copy: ', err)
+          // Error handling without logging
         })
     },
     openTransactionDetails (transaction) {
@@ -321,48 +321,37 @@ export default {
       // Map chain names to user-friendly display names
       switch (chainLower) {
         case 'sepolia':
-          return 'Sepolia'
+          return 'Sepolia (Testnet)'
         case 'eth':
           return 'Ethereum'
         case 'bnb':
+          return this.effectiveNetwork === 'mainnet' ? 'BNB Chain' : 'BNB (Testnet)'
         case 'bnbtestnet':
         case 'tbnb':
-          return 'BNB Testnet'
+          return 'BNB (Testnet)'
         case 'avaxfuji':
-          return 'AVAX Fuji'
+          return 'Avalanche (Fuji)'
+        case 'avax':
+          return this.effectiveNetwork === 'mainnet' ? 'Avalanche' : 'Avalanche (Fuji)'
         default:
-          return chain
+          // Return capitalized first letter of chain name
+          return chain.charAt(0).toUpperCase() + chain.slice(1)
       }
     }
   },
   watch: {
     show (newVal) {
       if (newVal) {
-        if (this.effectiveNetwork === 'mainnet') {
-          this.transactions = []
-          this.isLoading = false
-          return
-        }
         this.loadTransactions()
       }
     },
     network () {
       if (this.show) {
-        if (this.effectiveNetwork === 'mainnet') {
-          this.transactions = []
-          this.isLoading = false
-          return
-        }
         this.loadTransactions()
       }
     },
     '$root.currentNetwork' () {
       if (this.show) {
-        if (this.effectiveNetwork === 'mainnet') {
-          this.transactions = []
-          this.isLoading = false
-          return
-        }
         this.loadTransactions()
       }
     }
