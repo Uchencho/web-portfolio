@@ -109,7 +109,7 @@
               </div>
             </div>
             <small class="helper-text" :class="{ 'error-text': emailError }">
-              {{ emailError || "Notification will be sent to this email (optional)" }}
+              {{ emailError || "Email address is optional" }}
             </small>
           </div>
 
@@ -179,7 +179,12 @@
             <button type="button" class="clear-error-button" @click="apiError = ''">Dismiss</button>
           </div>
 
-          <button type="submit" class="send-button" :disabled="!isFormValid || isSubmitting">
+          <button
+            type="submit"
+            class="send-button"
+            :disabled="!isFormValid || isSubmitting"
+            :data-enabled="isFormValid && !isSubmitting"
+          >
             <span class="button-icon" v-if="!isSubmitting">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
@@ -285,12 +290,29 @@ export default {
   },
   computed: {
     isFormValid () {
-      return this.formData.chain &&
+      // Check for required fields and no errors
+      // Email is optional, so we only check for errors if it's provided
+      const valid = this.formData.chain &&
              this.formData.address &&
              this.formData.amount &&
              !this.addressError &&
              !this.amountError &&
              !this.emailError
+
+      // Only log in development to avoid console spam in production
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Form validation status:', {
+          chain: Boolean(this.formData.chain),
+          address: Boolean(this.formData.address),
+          amount: Boolean(this.formData.amount),
+          addressError: Boolean(this.addressError),
+          amountError: Boolean(this.amountError),
+          emailError: Boolean(this.emailError),
+          isValid: valid
+        })
+      }
+
+      return valid
     }
   },
   methods: {
@@ -356,9 +378,15 @@ export default {
         this.touched.email = true
       }
 
-      if (!this.formData.email || !this.touched.email) {
+      // If email is empty, it's valid since it's optional
+      if (!this.formData.email || this.formData.email.trim() === '') {
         this.emailError = ''
-        return
+        return true
+      }
+
+      if (!this.touched.email) {
+        this.emailError = ''
+        return true
       }
 
       // Basic email validation
@@ -381,6 +409,7 @@ export default {
       // Validate all fields
       const isAddressValid = this.validateAddress()
       const isAmountValid = this.validateAmount()
+      // Email is optional, so it's valid if it's empty or if it passes validation
       const isEmailValid = this.validateEmail()
 
       if (isAddressValid && isAmountValid && isEmailValid) {
@@ -416,18 +445,45 @@ export default {
       }
 
       this.passwordError = ''
-      this.submitPayout(this.securityPassword)
-      this.showPasswordModal = false
+      // Set submitting state but don't close the modal yet
+      this.isSubmitting = true
+
+      // Use the submitPayout with the password
+      this.submitPayoutWithPasswordModal(this.securityPassword)
     },
-    submitPayout (password = null) {
+    submitPayoutWithPasswordModal (password) {
       // Reset any previous API errors
       this.apiError = ''
 
       // Log the submission data
-      console.log('Submitting payout:', this.formData)
+      console.log('Submitting payout with password confirmation:', this.formData)
 
-      // Set loading state
-      this.isSubmitting = true
+      // Ensure the correct chain parameter is used based on the network
+      let chainValue = this.formData.chain
+
+      // Convert to lowercase for case-insensitive comparison
+      const chainLower = chainValue.toLowerCase()
+
+      // If we're on mainnet, make sure we're using the correct chain values
+      if (this.network === 'mainnet') {
+        // For mainnet: 'eth', 'bnb', 'avax'
+        if (chainLower === 'sepolia') {
+          chainValue = 'eth'
+        } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
+          chainValue = 'bnb'
+        } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
+          chainValue = 'avax'
+        }
+      } else {
+        // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
+        if (chainLower === 'eth') {
+          chainValue = 'sepolia'
+        } else if (chainLower === 'bnb') {
+          chainValue = 'bnbTestnet'
+        } else if (chainLower === 'avax') {
+          chainValue = 'avaxFuji'
+        }
+      }
 
       // Prepare the payload
       const payload = {
@@ -436,10 +492,14 @@ export default {
           currency: 'USD'
         },
         destinationAddress: this.formData.address,
-        chain: this.formData.chain,
-        email: this.formData.email || undefined,
+        chain: chainValue,
         tokenType: this.formData.tokenType.toLowerCase(),
         networkType: this.network
+      }
+
+      // Only include email if it's not empty
+      if (this.formData.email && this.formData.email.trim() !== '') {
+        payload.email = this.formData.email.trim()
       }
 
       // Prepare headers
@@ -450,7 +510,14 @@ export default {
 
       // Add password header for mainnet transactions
       if (this.network === 'mainnet' && password) {
-        headers['x-password'] = password
+        // Use lowercase x-password as the header name to avoid CORS issues
+        // NOTE: This must be lowercase 'x-password' NOT 'X-Password'
+        const headerName = 'x-password' // Explicitly define as lowercase
+        headers[headerName] = password
+
+        // Add debug logs
+        console.log(`Using password header: "${headerName}" with value length: ${password.length}`)
+        console.log('Full headers object:', JSON.stringify(headers))
       }
 
       // Use the ZingAPI submitPayout function with custom headers
@@ -458,7 +525,8 @@ export default {
         .then(data => {
           console.log('Payout successful:', data)
 
-          // Close the modal
+          // Close both modals
+          this.showPasswordModal = false
           this.resetForm()
           this.closeModal()
 
@@ -470,23 +538,99 @@ export default {
           // Set error message for display in UI
           this.apiError = error.message || 'Failed to submit payout. Please try again.'
 
-          // If this was a mainnet transaction with password and it failed,
-          // we might want to show the password modal again
-          if (this.network === 'mainnet' && password &&
-              (error.message?.includes('password') || error.message?.includes('unauthorized'))) {
-            this.showPasswordModal = true
+          // Keep the password modal open
+          // If it's a password-related error, show it in the password modal
+          if (error.message && (error.message.includes('password') || error.message.includes('unauthorized'))) {
             this.passwordError = 'Invalid password. Please try again.'
             this.$nextTick(() => {
               if (this.$refs.passwordInput) {
                 this.$refs.passwordInput.focus()
               }
             })
+          } else {
+            // For other errors, close the password modal and show the error in the main form
+            this.showPasswordModal = false
           }
         })
         .finally(() => {
           this.isSubmitting = false
           this.securityPassword = ''
         })
+    },
+    submitPayout (password = null) {
+      // For testnet (non-password) flows only
+      if (this.network !== 'mainnet') {
+        // Reset any previous API errors
+        this.apiError = ''
+
+        // Log the submission data
+        console.log('Submitting testnet payout:', this.formData)
+
+        // Set loading state
+        this.isSubmitting = true
+
+        // Ensure the correct chain parameter is used based on the network
+        let chainValue = this.formData.chain
+
+        // Convert to lowercase for case-insensitive comparison
+        const chainLower = chainValue.toLowerCase()
+
+        // If we're on testnet, make sure we're using the correct chain values
+        if (this.network === 'testnet') {
+          // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
+          if (chainLower === 'eth') {
+            chainValue = 'sepolia'
+          } else if (chainLower === 'bnb') {
+            chainValue = 'bnbTestnet'
+          } else if (chainLower === 'avax') {
+            chainValue = 'avaxFuji'
+          }
+        }
+
+        // Prepare the payload
+        const payload = {
+          amount: {
+            value: String(this.formData.amount),
+            currency: 'USD'
+          },
+          destinationAddress: this.formData.address,
+          chain: chainValue,
+          tokenType: this.formData.tokenType.toLowerCase(),
+          networkType: this.network
+        }
+
+        // Only include email if it's not empty
+        if (this.formData.email && this.formData.email.trim() !== '') {
+          payload.email = this.formData.email.trim()
+        }
+
+        // Prepare headers
+        const headers = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        }
+
+        // Use the ZingAPI submitPayout function with custom headers
+        submitPayout(payload, headers)
+          .then(data => {
+            console.log('Payout successful:', data)
+
+            // Close the modal
+            this.resetForm()
+            this.closeModal()
+
+            // Emit an event to show the transactions list view
+            this.$emit('show-transactions')
+          })
+          .catch(error => {
+            console.error('Error submitting payout:', error)
+            // Set error message for display in UI
+            this.apiError = error.message || 'Failed to submit payout. Please try again.'
+          })
+          .finally(() => {
+            this.isSubmitting = false
+          })
+      }
     },
     resetForm () {
       this.formData = {
@@ -582,6 +726,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .modal-header h2 {
@@ -838,7 +983,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1100; /* Higher than the main modal */
+  z-index: 10000; /* Higher than the main modal (9999) */
   backdrop-filter: blur(4px);
 }
 
@@ -850,6 +995,7 @@ export default {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   animation: modal-appear 0.3s ease-out;
   overflow: hidden;
+  position: relative;
 }
 
 .password-modal-header {
@@ -859,6 +1005,7 @@ export default {
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
   background-color: #fffaf0;
+  position: relative;
 }
 
 .password-modal-header h3 {
@@ -955,10 +1102,6 @@ export default {
 :deep(.dark-mode) .password-modal-header {
   background-color: #2b1a1a;
   border-bottom-color: #333;
-}
-
-:deep(.dark-mode) .password-modal-header h3 {
-  color: #ff6b6b;
 }
 
 :deep(.dark-mode) .warning-message {
@@ -1088,4 +1231,73 @@ export default {
 /* Dark mode styles for the network indicator are now in PayoutModalStyles.css */
 
 /* Additional mobile-specific styles */
+.send-button {
+  background-color: #42b983;
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(66, 185, 131, 0.3);
+}
+
+.send-button:not(:disabled) {
+  background-color: #42b983;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(66, 185, 131, 0.3);
+}
+
+.send-button:hover:not(:disabled) {
+  background-color: #3aa876;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(66, 185, 131, 0.4);
+}
+
+.send-button:disabled {
+  background-color: #a8d5c2;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.send-button[data-enabled="true"] {
+  background-color: #42b983;
+  opacity: 1;
+  cursor: pointer;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(66, 185, 131, 0.3);
+}
+
+.send-button[data-enabled="true"]:hover {
+  background-color: #3aa876;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(66, 185, 131, 0.4);
+}
+
+/* Add more visible active state on click */
+.send-button[data-enabled="true"]:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.3);
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

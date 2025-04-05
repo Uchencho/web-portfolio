@@ -7,15 +7,6 @@ const API_BASE_URL = 'https://em28dw3dg6.execute-api.us-east-1.amazonaws.com/dev
  * @returns {Object} Balance information
  */
 export async function fetchBalances (network, chain) {
-  // For mainnet, return zero balances since contract is not deployed yet
-  if (network === 'mainnet') {
-    return {
-      usdc: '0.00',
-      usdt: '0.00',
-      eth: '0.00'
-    }
-  }
-
   const balances = {
     usdc: '0.00',
     usdt: '0.00',
@@ -23,18 +14,14 @@ export async function fetchBalances (network, chain) {
   }
 
   try {
-    // Handle chain parameter
-    let chainParam = chain
+    // Handle chain parameter based on network type
+    const chainParam = chain
 
-    // Special handling for BNB chains
-    if (chainParam.toLowerCase() === 'bnb' || chainParam.toLowerCase() === 'tbnb') {
-      chainParam = 'bnbTestnet'
-    }
-    // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
-    // AVAX mainnet should be preserved as 'avax' with correct casing
+    // Add networkType parameter to URLs
+    const networkParam = `networkType=${network}`
 
     // Fetch USDC token balance with tokenType parameter
-    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdc`, {
+    const usdcResponse = await fetch(`${API_BASE_URL}/zing/balance?${networkParam}&type=token&chain=${chainParam}&tokenType=usdc`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -49,7 +36,7 @@ export async function fetchBalances (network, chain) {
     }
 
     // Fetch USDT token balance with tokenType parameter
-    const usdtResponse = await fetch(`${API_BASE_URL}/zing/balance?type=token&chain=${chainParam}&tokenType=usdt`, {
+    const usdtResponse = await fetch(`${API_BASE_URL}/zing/balance?${networkParam}&type=token&chain=${chainParam}&tokenType=usdt`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -64,7 +51,7 @@ export async function fetchBalances (network, chain) {
     }
 
     // Fetch native token (ETH/SEP/BNB) balance
-    const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?type=eth&chain=${chainParam}`, {
+    const ethResponse = await fetch(`${API_BASE_URL}/zing/balance?${networkParam}&type=eth&chain=${chainParam}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
@@ -96,27 +83,19 @@ export async function fetchBalances (network, chain) {
  * @returns {Array} List of transactions
  */
 export async function fetchTransactions (network, chain) {
-  // For mainnet, return empty array since contract is not deployed yet
-  if (network === 'mainnet') {
-    return []
-  }
-
   try {
     let url = `${API_BASE_URL}/zing/transactions`
 
+    // Add networkType as a query parameter
+    url += `?networkType=${network}`
+
     // If chain is provided, add it as a query parameter
     if (chain) {
-      // Handle chain value
-      let chainValue = chain
+      // Handle chain value based on network type
+      const chainValue = chain
 
-      // Special handling for BNB chains
-      if (chainValue.toLowerCase() === 'bnb' || chainValue.toLowerCase() === 'tbnb') {
-        chainValue = 'bnbTestnet'
-      }
-      // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
-      // AVAX mainnet should be preserved as 'avax' with correct casing
-
-      url += `?chain=${chainValue}`
+      // Add chain as an additional parameter
+      url += `&chain=${chainValue}`
     }
 
     const response = await fetch(url, {
@@ -153,29 +132,19 @@ export async function fetchTransactions (network, chain) {
  * @throws {Error} If transaction cannot be fetched
  */
 export async function fetchTransactionDetails (network, transactionHash, chain) {
-  // For mainnet, reject with an appropriate error since it's not available
-  if (network === 'mainnet') {
-    const error = new Error('Mainnet transactions are not available yet')
-    console.error(error)
-    return Promise.reject(error)
-  }
-
   try {
     let url = `${API_BASE_URL}/zing/transactions/${transactionHash}`
 
+    // Add networkType as a query parameter
+    url += `?networkType=${network}`
+
     // If chain is provided, add it as a query parameter
     if (chain) {
-      // Handle chain value
-      let chainValue = chain
+      // Handle chain value based on network type
+      const chainValue = chain
 
-      // Special handling for BNB chains
-      if (chainValue.toLowerCase() === 'bnb' || chainValue.toLowerCase() === 'tbnb') {
-        chainValue = 'bnbTestnet'
-      }
-      // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
-      // AVAX mainnet should be preserved as 'avax' with correct casing
-
-      url += `?chain=${chainValue}`
+      // Add chain as an additional parameter
+      url += `&chain=${chainValue}`
     }
 
     const response = await fetch(url, {
@@ -225,26 +194,15 @@ export async function fetchTransactionDetails (network, transactionHash, chain) 
  * @param {string} payoutData.chain - Blockchain chain (sepolia/eth)
  * @param {string} [payoutData.email] - Optional email address
  * @param {string} [payoutData.tokenType] - Token type (usdc/usdt)
- * @param {string} payoutData.networkType - Network type (testnet/mainnet)
+ * @param {string} [payoutData.networkType] - Network type (mainnet/testnet)
  * @param {Object} [customHeaders] - Optional custom headers to include in the request
  * @returns {Promise<Object>} API response
  * @throws {Error} If the payout submission fails
  */
 export async function submitPayout (payoutData, customHeaders = {}) {
   try {
-    // Create a new payload and preserve case for avaxFuji
-    let chainValue = payoutData.chain
-
-    // Special handling for BNB chains
-    if (chainValue.toLowerCase() === 'bnb' || chainValue.toLowerCase() === 'tbnb') {
-      chainValue = 'bnbTestnet'
-    }
-    // AVAX Fuji should be preserved as 'avaxFuji' with correct casing
-    // AVAX mainnet should be preserved as 'avax' with correct casing
-
     const payload = {
-      ...payoutData,
-      chain: chainValue
+      ...payoutData
     }
 
     // Merge default headers with custom headers
@@ -254,11 +212,16 @@ export async function submitPayout (payoutData, customHeaders = {}) {
       ...customHeaders
     }
 
+    // Log headers to help debug
+    console.log('Submitting payout with headers:', JSON.stringify(headers))
+
     const response = await fetch(`${API_BASE_URL}/zing/payout`, {
       method: 'POST',
       headers,
       mode: 'cors', // Explicitly set CORS mode
       credentials: 'same-origin', // Include credentials if needed
+      // Note: Headers in JavaScript are case-insensitive, but the server expects 'x-password'
+      // Be careful about header case during debugging
       body: JSON.stringify(payload)
     })
 

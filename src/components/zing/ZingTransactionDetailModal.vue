@@ -19,7 +19,7 @@
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
           </svg>
           <h3 class="error-title">Oops! Something went wrong</h3>
-          <p class="error-message">We couldn't retrieve the transaction details at this time.</p>
+          <p class="error-message">{{ error }}</p>
         </div>
 
         <div v-else-if="transaction" class="transaction-details">
@@ -104,7 +104,7 @@
         </div>
       </div>
 
-      <div class="modal-footer" v-if="transaction && network === 'testnet'">
+      <div class="modal-footer" v-if="transaction">
         <a
           :href="getExplorerLink()"
           target="_blank"
@@ -169,27 +169,55 @@ export default {
   },
   methods: {
     async fetchTransactionDetail () {
-      if (!this.transactionHash) return
+      // Use the transactionHash from props instead of transaction.id
+      if (!this.transactionHash) {
+        console.error('No transaction hash provided')
+        this.error = 'No transaction hash provided'
+        return
+      }
 
       this.isLoading = true
       this.error = null
-      this.transaction = null // Reset transaction immediately
 
-      try {
-        // Use the chain prop if available
-        this.transaction = await fetchTransactionDetails(
-          this.network,
-          this.transactionHash,
-          this.chain || null
-        )
-      } catch (error) {
-        console.error('Error fetching transaction details:', error)
-        // Set error to true to trigger the error state in the UI
-        this.error = true
-        this.transaction = null
-      } finally {
-        this.isLoading = false
+      const chain = this.getChain()
+      const chainLower = chain.toLowerCase()
+      let apiChain = chain
+
+      // Ensure the correct chain parameter is used based on the network
+      if (this.network === 'mainnet') {
+        // For mainnet API: use 'eth', 'bnb', 'avax'
+        if (chainLower === 'sepolia') {
+          apiChain = 'eth'
+        } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
+          apiChain = 'bnb'
+        } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
+          apiChain = 'avax'
+        }
+      } else {
+        // For testnet API: use 'sepolia', 'bnbTestnet', 'avaxFuji'
+        if (chainLower === 'eth') {
+          apiChain = 'sepolia'
+        } else if (chainLower === 'bnb') {
+          apiChain = 'bnbTestnet'
+        } else if (chainLower === 'avax') {
+          apiChain = 'avaxFuji'
+        }
       }
+
+      console.log(`Fetching transaction details: network=${this.network}, hash=${this.transactionHash}, chain=${apiChain}`)
+
+      // Call the API with the transaction hash from props
+      fetchTransactionDetails(this.network, this.transactionHash, apiChain)
+        .then(data => {
+          console.log('Transaction details received:', data)
+          this.transaction = data
+          this.isLoading = false
+        })
+        .catch(error => {
+          console.error('Error fetching transaction details:', error)
+          this.error = error.message || 'Failed to fetch transaction details'
+          this.isLoading = false
+        })
     },
     formatDate (dateString) {
       if (!dateString) return ''
@@ -223,55 +251,96 @@ export default {
           console.error('Failed to copy: ', err)
         })
     },
-    getExplorerLink () {
-      if (!this.transaction || !this.transaction.transactionHash) return '#'
-
-      // Get the chain from transaction or props, defaulting to 'sepolia' if not provided
-      const txChain = this.transaction.chain ? this.transaction.chain.toLowerCase() : ''
-      const propChain = this.chain ? this.chain.toLowerCase() : ''
-      const chain = txChain || propChain || 'sepolia'
-
-      // Handle all chain variations
-      if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
-        return `https://testnet.bscscan.com/tx/${this.transaction.transactionHash}`
-      } else if (chain === 'avaxfuji') {
-        return `https://testnet.snowtrace.io/tx/${this.transaction.transactionHash}`
-      } else if (chain === 'avax') {
-        return `https://snowtrace.io/tx/${this.transaction.transactionHash}`
-      } else {
-        // Default to Sepolia Etherscan
-        return `https://sepolia.etherscan.io/tx/${this.transaction.transactionHash}`
+    getChain () {
+      // If we have a transaction, use its chain first
+      if (this.transaction && this.transaction.chain) {
+        return this.transaction.chain
       }
+
+      // Otherwise use the chain from props
+      return this.chain || 'sepolia'
+    },
+    getExplorerLink () {
+      if (!this.transaction) {
+        return ''
+      }
+
+      const chain = this.getChain()
+      const chainLower = chain.toLowerCase()
+      const txHash = this.transaction.transactionHash
+      const isTestnet = this.network !== 'mainnet'
+
+      // Determine the explorer base URL based on the chain and network type
+      let explorerBaseUrl = ''
+
+      if (isTestnet) {
+        // Testnet explorers
+        if (chainLower === 'sepolia') {
+          explorerBaseUrl = 'https://sepolia.etherscan.io/tx/'
+        } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
+          explorerBaseUrl = 'https://testnet.bscscan.com/tx/'
+        } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
+          explorerBaseUrl = 'https://testnet.snowtrace.io/tx/'
+        } else {
+          explorerBaseUrl = 'https://sepolia.etherscan.io/tx/' // Default to Sepolia
+        }
+      } else {
+        // Mainnet explorers
+        if (chainLower === 'eth') {
+          explorerBaseUrl = 'https://etherscan.io/tx/'
+        } else if (chainLower === 'bnb') {
+          explorerBaseUrl = 'https://bscscan.com/tx/'
+        } else if (chainLower === 'avax') {
+          explorerBaseUrl = 'https://snowtrace.io/tx/'
+        } else {
+          explorerBaseUrl = 'https://etherscan.io/tx/' // Default to Ethereum
+        }
+      }
+
+      return explorerBaseUrl + txHash
     },
     getExplorerButtonText () {
-      if (!this.transaction) return 'View on Blockchain Explorer'
+      if (!this.transaction) {
+        return 'View on Blockchain Explorer'
+      }
 
-      // Get the chain from transaction or props, defaulting to 'sepolia' if not provided
-      const txChain = this.transaction.chain ? this.transaction.chain.toLowerCase() : ''
-      const propChain = this.chain ? this.chain.toLowerCase() : ''
-      const chain = txChain || propChain || 'sepolia'
+      const chain = this.getChain()
+      const chainLower = chain.toLowerCase()
+      const isTestnet = this.network !== 'mainnet'
 
-      // Handle all chain variations
-      if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
-        return 'View on BSC Scan'
-      } else if (chain === 'avaxfuji' || chain === 'avax') {
-        return 'View on Snowtrace'
+      if (isTestnet) {
+        return this.getTestnetExplorerText(chainLower)
       } else {
-        return 'View on Etherscan'
+        return this.getMainnetExplorerText(chainLower)
       }
     },
+    getMainnetExplorerText (chainLower) {
+      if (chainLower === 'bnb') {
+        return 'View on BSCScan'
+      } else if (chainLower === 'avax') {
+        return 'View on Snowtrace'
+      } else if (chainLower === 'eth') {
+        return 'View on Etherscan'
+      }
+      return 'View on Blockchain Explorer'
+    },
+    getTestnetExplorerText (chainLower) {
+      if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
+        return 'View on BSC Testnet Explorer'
+      } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
+        return 'View on Avalanche Fuji Explorer'
+      } else if (chainLower === 'sepolia') {
+        return 'View on Sepolia Explorer'
+      }
+      return 'View on Testnet Explorer'
+    },
     getGasPriceCurrency () {
-      if (!this.transaction) return 'ETH'
+      const chain = this.getChain()
+      const chainLower = chain.toLowerCase()
 
-      // Get the chain from transaction or props, defaulting to 'sepolia' if not provided
-      const txChain = this.transaction.chain ? this.transaction.chain.toLowerCase() : ''
-      const propChain = this.chain ? this.chain.toLowerCase() : ''
-      const chain = txChain || propChain || 'sepolia'
-
-      // Return appropriate gas price currency based on chain
-      if (chain === 'bnbtestnet' || chain === 'tbnb' || chain === 'bnb') {
+      if (['bnb', 'bnbtestnet', 'tbnb'].includes(chainLower)) {
         return 'BNB'
-      } else if (chain === 'avaxfuji' || chain === 'avax') {
+      } else if (['avax', 'avaxFuji'].includes(chainLower)) {
         return 'AVAX'
       } else {
         return 'ETH'

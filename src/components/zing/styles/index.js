@@ -13,4 +13,4 @@ export const removeDarkMode = (element) => {
   element.classList.remove('dark-mode')
 }
 
-// Add more style-related utilities as needed 
+// Add more style-related utilities as needed
