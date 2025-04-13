@@ -22,6 +22,7 @@
                 <option value="eth" v-if="network === 'mainnet'">Ethereum (ETH)</option>
                 <option value="bnb" v-if="network === 'mainnet'">BNB Chain (BNB)</option>
                 <option value="avax" v-if="network === 'mainnet'">Avalanche (AVAX)</option>
+                <option value="arb" v-if="network === 'mainnet'">Arbitrum (ARB)</option>
               </select>
               <div class="select-arrow"></div>
             </div>
@@ -455,7 +456,7 @@ export default {
 
       // If we're on mainnet, make sure we're using the correct chain values
       if (this.network === 'mainnet') {
-        // For mainnet: 'eth', 'bnb', 'avax'
+        // For mainnet: 'eth', 'bnb', 'avax', 'arb'
         if (chainLower === 'sepolia') {
           chainValue = 'eth'
         } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
@@ -463,6 +464,7 @@ export default {
         } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
           chainValue = 'avax'
         }
+        // arb uses same value for UI and API, so no change needed
       } else {
         // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
         if (chainLower === 'eth') {
@@ -472,6 +474,7 @@ export default {
         } else if (chainLower === 'avax') {
           chainValue = 'avaxFuji'
         }
+        // No arb on testnet
       }
 
       // Prepare the payload
@@ -554,6 +557,7 @@ export default {
         // If we're on testnet, make sure we're using the correct chain values
         if (this.network === 'testnet') {
           // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
+          // Note: ARB is not available on testnet
           if (chainLower === 'eth') {
             chainValue = 'sepolia'
           } else if (chainLower === 'bnb') {
@@ -639,6 +643,8 @@ export default {
           return 'AVAX Fuji'
         case 'avax':
           return 'Avalanche'
+        case 'arb':
+          return 'Arbitrum'
         default:
           return this.formData.chain
       }
@@ -658,6 +664,8 @@ export default {
           return 'AVAX'
         case 'avax':
           return 'AVAX'
+        case 'arb':
+          return 'ETH'
         default:
           return 'ETH'
       }

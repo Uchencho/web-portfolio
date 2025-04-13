@@ -183,7 +183,7 @@ export default {
 
         // If we're on mainnet, make sure we're using the correct chain values
         if (this.network === 'mainnet') {
-          // For mainnet: 'eth', 'bnb', 'avax'
+          // For mainnet: 'eth', 'bnb', 'avax', 'arb'
           if (chainLower === 'sepolia') {
             chainForBalance = 'eth'
           } else if (['bnbtestnet', 'tbnb'].includes(chainLower)) {
@@ -191,6 +191,7 @@ export default {
           } else if (['avaxfuji', 'avaxFuji'].includes(chainLower)) {
             chainForBalance = 'avax'
           }
+          // arb is already the correct format for API calls
         } else {
           // For testnet: 'sepolia', 'bnbTestnet', 'avaxFuji'
           if (chainLower === 'eth') {
@@ -224,6 +225,7 @@ export default {
       switch (chainLower) {
         case 'eth':
         case 'sepolia':
+        case 'arb':
           return 'ETH'
         case 'bnb':
         case 'bnbtestnet':

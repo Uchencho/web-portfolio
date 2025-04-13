@@ -191,7 +191,7 @@ export async function fetchTransactionDetails (network, transactionHash, chain) 
  * @param {string} payoutData.amount.value - Amount value
  * @param {string} payoutData.amount.currency - Amount currency (USD)
  * @param {string} payoutData.destinationAddress - Destination wallet address
- * @param {string} payoutData.chain - Blockchain chain (sepolia/eth)
+ * @param {string} payoutData.chain - Blockchain chain (sepolia/eth/bnb/avax/arb)
  * @param {string} [payoutData.email] - Optional email address
  * @param {string} [payoutData.tokenType] - Token type (usdc/usdt)
  * @param {string} [payoutData.networkType] - Network type (mainnet/testnet)
