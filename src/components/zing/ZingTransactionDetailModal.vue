@@ -292,6 +292,8 @@ export default {
           explorerBaseUrl = 'https://bscscan.com/tx/'
         } else if (chainLower === 'avax') {
           explorerBaseUrl = 'https://snowtrace.io/tx/'
+        } else if (chainLower === 'arb') {
+          explorerBaseUrl = 'https://arbiscan.io/tx/'
         } else {
           explorerBaseUrl = 'https://etherscan.io/tx/' // Default to Ethereum
         }
@@ -321,6 +323,8 @@ export default {
         return 'View on Snowtrace'
       } else if (chainLower === 'eth') {
         return 'View on Etherscan'
+      } else if (chainLower === 'arb') {
+        return 'View on Arbiscan'
       }
       return 'View on Blockchain Explorer'
     },
@@ -342,6 +346,8 @@ export default {
         return 'BNB'
       } else if (['avax', 'avaxFuji'].includes(chainLower)) {
         return 'AVAX'
+      } else if (['eth', 'sepolia', 'arb'].includes(chainLower)) {
+        return 'ETH'
       } else {
         return 'ETH'
       }

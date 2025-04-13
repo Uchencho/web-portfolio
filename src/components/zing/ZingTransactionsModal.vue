@@ -338,6 +338,8 @@ export default {
           return 'Avalanche (Fuji)'
         case 'avax':
           return this.effectiveNetwork === 'mainnet' ? 'Avalanche' : 'Avalanche (Fuji)'
+        case 'arb':
+          return 'Arbitrum'
         default:
           // Return capitalized first letter of chain name
           return chain.charAt(0).toUpperCase() + chain.slice(1)
